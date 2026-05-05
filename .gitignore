@@ -1,0 +1,19 @@
+# Unity
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/obj/
+unity/Builds/
+unity/UserSettings/
+unity/.vsconfig
+
+# Android
+android/.gradle/
+android/build/
+android/local.properties
+*.keystore
+
+# Sistema
+.DS_Store
+*.iml
+.idea/
