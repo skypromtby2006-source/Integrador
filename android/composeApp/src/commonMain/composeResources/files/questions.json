@@ -1,0 +1,235 @@
+{
+  "organs": [
+    {
+      "organId": "heart",
+      "questions": [
+        {
+          "id": "heart_q1",
+          "topic": "frecuencia_cardiaca",
+          "difficulty": "EASY",
+          "text": "¿Cuál es la frecuencia cardíaca normal en reposo para un adulto sano?",
+          "options": ["20 – 40 lpm", "60 – 100 lpm", "100 – 140 lpm", "140 – 180 lpm"],
+          "correctIndex": 1,
+          "explanation": "60-100 lpm es el rango normal. Por encima de 100 se llama taquicardia; por debajo de 60, bradicardia."
+        },
+        {
+          "id": "heart_q2",
+          "topic": "taquicardia",
+          "difficulty": "MEDIUM",
+          "text": "¿Qué nombre recibe la condición cuando el corazón late a más de 100 lpm en reposo?",
+          "options": ["Bradicardia", "Arritmia", "Taquicardia", "Fibrilación"],
+          "correctIndex": 2,
+          "explanation": "Taquicardia es la frecuencia cardíaca superior a 100 lpm. Puede ser fisiológica (ejercicio) o patológica."
+        },
+        {
+          "id": "heart_q3",
+          "topic": "gasto_cardiaco",
+          "difficulty": "HARD",
+          "text": "¿Cuántos litros de sangre bombea el corazón aproximadamente en un día?",
+          "options": ["~700 L", "~7 000 L", "~70 L", "~70 000 L"],
+          "correctIndex": 1,
+          "explanation": "Con ~5 L/min × 1 440 min/día, el corazón bombea alrededor de 7 200 litros diarios."
+        },
+        {
+          "id": "heart_q4",
+          "topic": "bradicardia",
+          "difficulty": "EASY",
+          "text": "¿Cómo se llama la condición donde la frecuencia cardíaca es menor de 60 lpm?",
+          "options": ["Taquicardia", "Bradicardia", "Arritmia", "Fibrilación"],
+          "correctIndex": 1,
+          "explanation": "Bradicardia es una frecuencia cardíaca menor de 60 lpm. En atletas puede ser fisiológica; en otros casos indica un problema del sistema de conducción."
+        },
+        {
+          "id": "heart_q5",
+          "topic": "presion_arterial",
+          "difficulty": "EASY",
+          "text": "¿Cuál es el valor normal de presión arterial sistólica en un adulto?",
+          "options": ["< 80 mmHg", "< 120 mmHg", "< 160 mmHg", "< 200 mmHg"],
+          "correctIndex": 1,
+          "explanation": "La presión sistólica normal es < 120 mmHg. Entre 120-129 se considera elevada; ≥ 130 es hipertensión estadio 1."
+        },
+        {
+          "id": "heart_q6",
+          "topic": "ciclo_cardiaco",
+          "difficulty": "MEDIUM",
+          "text": "¿Cuántas fases principales tiene el ciclo cardíaco?",
+          "options": ["1", "2", "3", "4"],
+          "correctIndex": 1,
+          "explanation": "El ciclo cardíaco tiene 2 fases: sístole (contracción ventricular y eyección de sangre) y diástole (relajación y llenado ventricular)."
+        },
+        {
+          "id": "heart_q7",
+          "topic": "infarto_sintomas",
+          "difficulty": "MEDIUM",
+          "text": "¿Cuál es el síntoma más característico de un infarto de miocardio?",
+          "options": ["Fiebre alta", "Dolor opresivo en el pecho que puede irradiar al brazo izquierdo", "Dolor de cabeza intenso", "Vómitos repetidos sin dolor torácico"],
+          "correctIndex": 1,
+          "explanation": "El dolor torácico opresivo con posible irradiación al brazo izquierdo, mandíbula o espalda es el síntoma cardinal del infarto. Se confirma con ECG y troponinas."
+        },
+        {
+          "id": "heart_q8",
+          "topic": "fraccion_eyeccion",
+          "difficulty": "HARD",
+          "text": "¿Qué indica una fracción de eyección del ventrículo izquierdo (FEVI) menor al 40%?",
+          "options": ["Función cardíaca normal", "Insuficiencia cardíaca con fracción de eyección reducida", "Hipertensión pulmonar aislada", "Arritmia ventricular benigna"],
+          "correctIndex": 1,
+          "explanation": "FEVI < 40% indica insuficiencia cardíaca con fracción de eyección reducida (ICFEr). La FEVI normal es ≥ 55% y es el marcador pronóstico más importante en la insuficiencia cardíaca."
+        }
+      ]
+    },
+    {
+      "organId": "lungs",
+      "questions": [
+        {
+          "id": "lungs_q1",
+          "topic": "frecuencia_respiratoria",
+          "difficulty": "EASY",
+          "text": "¿Cuál es la frecuencia respiratoria normal de un adulto en reposo?",
+          "options": ["6 – 10 /min", "12 – 20 /min", "25 – 35 /min", "40 – 50 /min"],
+          "correctIndex": 1,
+          "explanation": "12-20 respiraciones/min es el rango normal. Por encima de 25 se habla de taquipnea."
+        },
+        {
+          "id": "lungs_q2",
+          "topic": "saturacion_oxigeno",
+          "difficulty": "EASY",
+          "text": "¿Qué valor de saturación de oxígeno en sangre (SpO₂) se considera normal?",
+          "options": ["70 – 80 %", "80 – 90 %", "95 – 100 %", "60 – 70 %"],
+          "correctIndex": 2,
+          "explanation": "SpO₂ normal es 95-100 %. Por debajo de 90 % se considera hipoxemia y requiere atención urgente."
+        },
+        {
+          "id": "lungs_q3",
+          "topic": "capacidad_pulmonar",
+          "difficulty": "MEDIUM",
+          "text": "¿Cuál es la capacidad pulmonar total aproximada de un adulto?",
+          "options": ["~1 L", "~3 L", "~6 L", "~12 L"],
+          "correctIndex": 2,
+          "explanation": "La capacidad pulmonar total ronda los 6 litros, aunque en reposo solo se usan ~0.5 L por ciclo (volumen tidal)."
+        },
+        {
+          "id": "lungs_q4",
+          "topic": "volumen_tidal",
+          "difficulty": "EASY",
+          "text": "¿Cuál es el volumen de aire que se mueve en cada respiración normal (volumen tidal)?",
+          "options": ["~0.1 L", "~0.5 L", "~2 L", "~4 L"],
+          "correctIndex": 1,
+          "explanation": "El volumen tidal normal es ~500 mL (0.5 L). Solo ~350 mL llega a los alvéolos; los otros 150 mL quedan en el espacio muerto anatómico."
+        },
+        {
+          "id": "lungs_q5",
+          "topic": "hipoxemia",
+          "difficulty": "MEDIUM",
+          "text": "¿Cuál es el valor de SpO₂ que define hipoxemia clínicamente significativa?",
+          "options": ["< 99 %", "< 95 %", "< 90 %", "< 70 %"],
+          "correctIndex": 2,
+          "explanation": "SpO₂ < 90% define hipoxemia clínicamente significativa. Entre 90-94% es zona de alerta. Por debajo de 85% requiere intervención urgente."
+        },
+        {
+          "id": "lungs_q6",
+          "topic": "taquipnea",
+          "difficulty": "MEDIUM",
+          "text": "¿Qué nombre recibe la frecuencia respiratoria superior a 25 respiraciones/minuto?",
+          "options": ["Bradipnea", "Taquipnea", "Apnea", "Hiperpnea"],
+          "correctIndex": 1,
+          "explanation": "Taquipnea es la frecuencia respiratoria > 25/min. Puede indicar neumonía, embolia pulmonar, acidosis metabólica u otras patologías graves."
+        },
+        {
+          "id": "lungs_q7",
+          "topic": "intercambio_gaseoso",
+          "difficulty": "HARD",
+          "text": "¿Dónde ocurre el intercambio de O₂ y CO₂ en el pulmón?",
+          "options": ["En los bronquios", "En los bronquiolos terminales", "En los alvéolos", "En la tráquea"],
+          "correctIndex": 2,
+          "explanation": "El intercambio gaseoso ocurre en los alvéolos, donde la membrana alvéolo-capilar tiene solo ~0.5 μm de grosor. La superficie alveolar total es ~70 m², maximizando la difusión."
+        },
+        {
+          "id": "lungs_q8",
+          "topic": "compliance_pulmonar",
+          "difficulty": "HARD",
+          "text": "¿Qué mide la distensibilidad (compliance) pulmonar?",
+          "options": ["La velocidad del flujo de aire en bronquios", "La resistencia de las vías aéreas superiores", "La facilidad con que el pulmón se expande ante un cambio de presión", "La cantidad de O₂ transportada por la hemoglobina"],
+          "correctIndex": 2,
+          "explanation": "La compliance pulmonar mide el cambio de volumen por unidad de cambio de presión (ΔV/ΔP). Está reducida en fibrosis pulmonar y aumentada en enfisema."
+        }
+      ]
+    },
+    {
+      "organId": "kidneys",
+      "questions": [
+        {
+          "id": "kidneys_q1",
+          "topic": "filtracion_glomerular",
+          "difficulty": "HARD",
+          "text": "¿Cuántos litros de sangre filtran los riñones aproximadamente al día?",
+          "options": ["~18 L", "~50 L", "~180 L", "~500 L"],
+          "correctIndex": 2,
+          "explanation": "Los riñones filtran ~125 mL/min, equivalente a 180 litros de ultrafiltrado al día. La mayoría se reabsorbe en los túbulos."
+        },
+        {
+          "id": "kidneys_q2",
+          "topic": "oliguria",
+          "difficulty": "MEDIUM",
+          "text": "¿Cómo se llama la condición en que se produce menos de 400 mL de orina al día?",
+          "options": ["Poliuria", "Oliguria", "Anuria", "Hematuria"],
+          "correctIndex": 1,
+          "explanation": "Oliguria (< 400 mL/día) indica filtración insuficiente. Anuria (< 100 mL/día) es una emergencia renal."
+        },
+        {
+          "id": "kidneys_q3",
+          "topic": "presion_arterial",
+          "difficulty": "EASY",
+          "text": "¿Qué valor de presión arterial se considera normal para proteger la función renal?",
+          "options": ["< 80/50 mmHg", "< 120/80 mmHg", "< 160/100 mmHg", "< 200/120 mmHg"],
+          "correctIndex": 1,
+          "explanation": "Mantener la presión por debajo de 120/80 mmHg protege los glomérulos. La hipertensión crónica es causa frecuente de insuficiencia renal."
+        },
+        {
+          "id": "kidneys_q4",
+          "topic": "poliuria",
+          "difficulty": "EASY",
+          "text": "¿Cómo se llama la producción excesiva de orina (más de 3 L/día)?",
+          "options": ["Oliguria", "Anuria", "Poliuria", "Hematuria"],
+          "correctIndex": 2,
+          "explanation": "Poliuria es la producción de > 3 litros de orina al día. Puede indicar diabetes mellitus, diabetes insípida o uso de diuréticos."
+        },
+        {
+          "id": "kidneys_q5",
+          "topic": "creatinina",
+          "difficulty": "MEDIUM",
+          "text": "¿Qué indica la creatinina sérica elevada (> 1.2 mg/dL en hombres)?",
+          "options": ["Buena función muscular", "Disminución del filtrado glomerular o daño renal", "Hipertensión arterial activa", "Deshidratación severa"],
+          "correctIndex": 1,
+          "explanation": "La creatinina es un producto del metabolismo muscular excretado por los riñones. Valores elevados sugieren disminución del filtrado glomerular o daño renal."
+        },
+        {
+          "id": "kidneys_q6",
+          "topic": "anuria",
+          "difficulty": "MEDIUM",
+          "text": "¿Qué diferencia a la anuria de la oliguria?",
+          "options": ["Son sinónimos clínicos", "Oliguria es < 400 mL/día; anuria es < 100 mL/día y es emergencia", "Oliguria afecta un riñón; anuria afecta ambos", "Oliguria es exceso de orina; anuria es producción normal"],
+          "correctIndex": 1,
+          "explanation": "Oliguria (< 400 mL/día) indica producción insuficiente. Anuria (< 100 mL/día) es prácticamente ausencia total y requiere diálisis urgente."
+        },
+        {
+          "id": "kidneys_q7",
+          "topic": "tasa_filtracion_glomerular",
+          "difficulty": "HARD",
+          "text": "¿Qué valor de tasa de filtración glomerular (TFG) define insuficiencia renal crónica estadio 3?",
+          "options": ["TFG > 90 mL/min", "TFG 60-89 mL/min", "TFG 30-59 mL/min", "TFG 15-29 mL/min"],
+          "correctIndex": 2,
+          "explanation": "TFG 30-59 mL/min/1.73m² define el estadio G3 (moderada disminución). TFG normal es > 90. Por debajo de 15 es estadio G5 (fallo renal terminal)."
+        },
+        {
+          "id": "kidneys_q8",
+          "topic": "nefrona",
+          "difficulty": "HARD",
+          "text": "¿Cuál es la unidad funcional del riñón y cuántas contiene cada riñón?",
+          "options": ["El glomérulo; ~100 000", "La nefrona; ~1 millón", "El túbulo colector; ~500 000", "La cápsula de Bowman; ~200 000"],
+          "correctIndex": 1,
+          "explanation": "La nefrona es la unidad funcional del riñón. Cada riñón contiene ~1 millón de nefronas, cada una con glomérulo (filtración) y túbulo (reabsorción y secreción)."
+        }
+      ]
+    }
+  ]
+}

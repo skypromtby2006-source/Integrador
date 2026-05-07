@@ -1,5 +1,7 @@
 package com.anatomia.app.agent
 
+import kotlinx.serialization.Serializable
+
 // ── Beliefs: lo que el agente sabe del estado del estudiante ─────────────────
 sealed class Belief {
     data class OrganFocused(val organId: String) : Belief()
@@ -17,11 +19,15 @@ sealed class Desire {
 // ── Actions: lo que el agente puede hacer ────────────────────────────────────
 sealed class AgentAction {
     data object Greet : AgentAction()
-    data class PoseQuestion(val question: Question) : AgentAction()
+    data class PoseQuestion(val question: Question, val contextMessage: String = "") : AgentAction()
     data class ProvideFeedback(val wasCorrect: Boolean, val explanation: String) : AgentAction()
     data class Summarize(val organId: String, val score: Int, val total: Int) : AgentAction()
 }
 
+@Serializable
+enum class Difficulty { EASY, MEDIUM, HARD }
+
+@Serializable
 data class Question(
     val id: String,
     val organId: String,
@@ -29,4 +35,14 @@ data class Question(
     val options: List<String>,
     val correctIndex: Int,
     val explanation: String,
+    val topic: String,
+    val difficulty: Difficulty = Difficulty.MEDIUM,
+)
+
+// Estado de conocimiento del estudiante para el scoring BDI
+data class StudentState(
+    val knowledgeScore: Float = 0f,
+    val correctCount: Int = 0,
+    val incorrectCount: Int = 0,
+    val incorrectTopics: List<String> = emptyList(),
 )

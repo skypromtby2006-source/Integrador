@@ -1,6 +1,7 @@
 package com.anatomia.app.ui.screen.agent
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.anatomia.app.agent.AgentAction
 import com.anatomia.app.agent.AgentRepository
 import com.anatomia.app.agent.Belief
@@ -8,9 +9,12 @@ import com.anatomia.app.agent.ContentBank
 import com.anatomia.app.agent.DecisionEngine
 import com.anatomia.app.agent.Desire
 import com.anatomia.app.agent.Question
+import com.anatomia.app.agent.StudentState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 enum class Sender { AGENT, STUDENT }
 
@@ -36,81 +40,114 @@ sealed class AgentUiState {
 
 class AgentViewModel(private val organId: String) : ViewModel() {
 
-    private val repository = AgentRepository()
-    private val questions  = ContentBank.questionsFor(organId)
-    private val beliefs    = mutableListOf<Belief>(Belief.OrganFocused(organId))
-    private val desire: Desire = Desire.Teach(organId)
-    private val answeredIds = mutableSetOf<String>()
-    private var feedbackPending = false
-    private var msgCount = 0
-    private var isFinished = false
-    private var finalScore = 0
-    private var finalTotal = 0
+    private val repository   = AgentRepository()
+    private var questions    = emptyList<Question>()
+    private val beliefs      = mutableListOf<Belief>(Belief.OrganFocused(organId))
+    private var desire: Desire = Desire.Teach(organId)
+    private val answeredIds  = mutableSetOf<String>()
+    private var studentState = StudentState()
+    private var msgCount     = 0
 
     private val _uiState = MutableStateFlow<AgentUiState>(AgentUiState.Loading)
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            questions = ContentBank.load()[organId] ?: emptyList()
+            initializeChat()
+        }
+    }
+
+    private fun initializeChat() {
         val msgs = mutableListOf<ChatMessage>()
         msgs.add(agentMsg("Hola. Vamos a repasar ${ContentBank.organName(organId)}. " +
             "Te haré ${questions.size} preguntas. ¡Empieza cuando quieras!"))
         if (questions.isEmpty()) {
             msgs.add(agentMsg("No hay preguntas disponibles para este órgano aún."))
-            isFinished = true
             _uiState.value = AgentUiState.Finished(msgs, 0, 0)
         } else {
-            applyAction(DecisionEngine.decide(beliefs, desire, questions, false), msgs)
-            _uiState.value = buildState(msgs)
+            val action = DecisionEngine.decide(beliefs, desire, questions, false,
+                studentState.knowledgeScore, studentState.incorrectTopics, answeredIds)
+            if (action is AgentAction.PoseQuestion) {
+                if (action.contextMessage.isNotEmpty()) msgs.add(agentMsg(action.contextMessage))
+                msgs.add(agentMsg(action.question.stem, question = action.question))
+                _uiState.value = AgentUiState.Chatting(msgs, action.question)
+            } else {
+                _uiState.value = AgentUiState.Chatting(msgs, null)
+            }
         }
     }
 
     fun onOptionSelected(questionId: String, selectedIndex: Int) {
-        val state = _uiState.value as? AgentUiState.Chatting ?: return
+        val state    = _uiState.value as? AgentUiState.Chatting ?: return
         val question = questions.find { it.id == questionId } ?: return
-        val wasCorrect = selectedIndex == question.correctIndex
 
-        beliefs.add(Belief.QuestionAnswered(questionId, wasCorrect))
+        // 1. Evaluar respuesta y actualizar score
+        val result = DecisionEngine.evaluateAnswer(
+            question        = question,
+            selectedIndex   = selectedIndex,
+            currentScore    = studentState.knowledgeScore,
+            incorrectTopics = studentState.incorrectTopics,
+        )
+        studentState = studentState.copy(
+            knowledgeScore  = result.newScore,
+            correctCount    = studentState.correctCount + if (result.isCorrect) 1 else 0,
+            incorrectCount  = studentState.incorrectCount + if (result.isCorrect) 0 else 1,
+            incorrectTopics = result.updatedIncorrectTopics,
+        )
+        beliefs.add(Belief.QuestionAnswered(questionId, result.isCorrect))
         answeredIds.add(questionId)
-        repository.recordAnswer(organId, questionId, wasCorrect)
-        feedbackPending = true
+        repository.recordAnswer(organId, questionId, result.isCorrect)
 
-        val msgs = state.messages.toMutableList()
+        // 2. Mostrar selección del estudiante + feedback inmediatamente.
+        //    currentQuestion = null hace que las opciones desaparezcan.
+        val prefix = if (result.isCorrect) "Correcto. " else "Incorrecto. "
+        val msgs   = state.messages.toMutableList()
         msgs.add(studentMsg(question.options[selectedIndex]))
+        msgs.add(agentMsg(prefix + result.explanation))
+        _uiState.value = AgentUiState.Chatting(messages = msgs, currentQuestion = null)
 
-        val feedbackAction = DecisionEngine.decide(beliefs, desire, questions, feedbackPending)
-        feedbackPending = false
-        applyAction(feedbackAction, msgs)
-
-        _uiState.value = buildState(msgs)
-    }
-
-    private fun applyAction(action: AgentAction, msgs: MutableList<ChatMessage>) {
-        when (action) {
-            AgentAction.Greet -> Unit
-            is AgentAction.PoseQuestion -> {
-                msgs.add(agentMsg(action.question.stem, question = action.question))
-            }
-            is AgentAction.ProvideFeedback -> {
-                val prefix = if (action.wasCorrect) "Correcto. " else "Incorrecto. "
-                msgs.add(agentMsg(prefix + action.explanation))
-                // Decide inmediatamente qué hacer después del feedback
-                applyAction(DecisionEngine.decide(beliefs, desire, questions, false), msgs)
-            }
-            is AgentAction.Summarize -> {
-                val pct = if (action.total > 0) action.score * 100 / action.total else 0
-                val suffix = if (pct >= 70) "¡Buen trabajo!" else "Sigue practicando, lo lograrás."
-                msgs.add(agentMsg("Sesión completada. Obtuviste ${action.score}/${action.total} ($pct%). $suffix"))
-                isFinished = true
-                finalScore = action.score
-                finalTotal = action.total
-            }
+        // 3. Esperar 2 s para que la UI renderice el feedback, luego avanzar
+        viewModelScope.launch {
+            delay(2000)
+            advanceToNextStep()
         }
     }
 
-    private fun buildState(msgs: List<ChatMessage>): AgentUiState {
-        if (isFinished) return AgentUiState.Finished(msgs, finalScore, finalTotal)
-        val currentQuestion = msgs.lastOrNull { it.question != null && it.question.id !in answeredIds }?.question
-        return AgentUiState.Chatting(msgs, currentQuestion)
+    private fun advanceToNextStep() {
+        val state = _uiState.value as? AgentUiState.Chatting ?: return
+        val msgs  = state.messages.toMutableList()
+
+        desire = DecisionEngine.decideNextDesire(
+            score           = studentState.knowledgeScore,
+            attemptCount    = answeredIds.size,
+            organId         = organId,
+            totalQuestions  = questions.size,
+            answeredCount   = answeredIds.size,
+        )
+
+        when (val action = DecisionEngine.decide(
+            beliefs, desire, questions, false,
+            studentState.knowledgeScore, studentState.incorrectTopics, answeredIds,
+        )) {
+            is AgentAction.PoseQuestion -> {
+                if (action.contextMessage.isNotEmpty()) msgs.add(agentMsg(action.contextMessage))
+                msgs.add(agentMsg(action.question.stem, question = action.question))
+                _uiState.value = AgentUiState.Chatting(messages = msgs, currentQuestion = action.question)
+            }
+            is AgentAction.Summarize -> {
+                val pct    = if (action.total > 0) action.score * 100 / action.total else 0
+                val suffix = if (pct >= 70) "¡Buen trabajo!" else "Sigue practicando, lo lograrás."
+                msgs.add(agentMsg("Sesión completada. Obtuviste ${action.score}/${action.total} ($pct%). $suffix"))
+                _uiState.value = AgentUiState.Finished(messages = msgs, score = action.score, total = action.total)
+            }
+            is AgentAction.ProvideFeedback -> {
+                // No debería ocurrir aquí (feedbackPending = false), pero si ocurre se muestra
+                msgs.add(agentMsg(action.explanation))
+                _uiState.value = AgentUiState.Chatting(messages = msgs, currentQuestion = null)
+            }
+            AgentAction.Greet -> Unit
+        }
     }
 
     private fun agentMsg(text: String, question: Question? = null) =
