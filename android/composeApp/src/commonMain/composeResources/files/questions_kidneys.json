@@ -1,0 +1,76 @@
+{
+  "questions": [
+    {
+      "id": "kidneys_q1",
+      "topic": "funcion_renal_basica",
+      "difficulty": "EASY",
+      "text": "¿Cuál es la función principal del riñón?",
+      "options": ["Producir insulina para regular la glucosa", "Filtrar la sangre y eliminar desechos en la orina", "Almacenar vitaminas liposolubles", "Regular la temperatura corporal"],
+      "correctIndex": 1,
+      "explanation": "El riñón filtra ~180 litros de sangre al día, eliminando desechos metabólicos, exceso de agua y electrolitos. También produce eritropoyetina, calcitriol y renina."
+    },
+    {
+      "id": "kidneys_q2",
+      "topic": "diuresis_normal",
+      "difficulty": "EASY",
+      "text": "¿Cuántos mililitros de orina produce normalmente un adulto en 24 horas?",
+      "options": ["200 – 400 mL", "400 – 600 mL", "800 – 2 000 mL", "3 000 – 5 000 mL"],
+      "correctIndex": 2,
+      "explanation": "La diuresis normal es 800-2000 mL/día. Por debajo de 400 mL/día se habla de oliguria; por debajo de 100 mL/día, de anuria."
+    },
+    {
+      "id": "kidneys_q3",
+      "topic": "oliguria",
+      "difficulty": "MEDIUM",
+      "text": "¿Cómo se llama la condición en que se produce menos de 400 mL de orina al día?",
+      "options": ["Poliuria", "Oliguria", "Anuria", "Hematuria"],
+      "correctIndex": 1,
+      "explanation": "Oliguria (< 400 mL/día) indica filtración insuficiente. Anuria (< 100 mL/día) es prácticamente ausencia total y puede requerir diálisis urgente."
+    },
+    {
+      "id": "kidneys_q4",
+      "topic": "hematuria",
+      "difficulty": "MEDIUM",
+      "text": "¿Cómo se denomina la presencia de sangre en la orina?",
+      "options": ["Proteinuria", "Glucosuria", "Hematuria", "Piuria"],
+      "correctIndex": 2,
+      "explanation": "Hematuria es la presencia de hematíes en orina. Puede ser macroscópica (visible a simple vista) o microscópica. Sus causas incluyen litiasis renal, infección urinaria, trauma o tumor."
+    },
+    {
+      "id": "kidneys_q5",
+      "topic": "presion_y_rinon",
+      "difficulty": "MEDIUM",
+      "text": "¿Por qué la hipertensión arterial crónica daña el riñón?",
+      "options": ["Provoca daño glomerular por hiperperfusión y esclerosis de los capilares", "Reduce directamente la producción de eritropoyetina", "Obstruye el uréter por depósitos de calcio", "Aumenta la reabsorción de potasio en los túbulos"],
+      "correctIndex": 0,
+      "explanation": "La hipertensión somete los glomérulos a presiones elevadas, causando glomeruloesclerosis y pérdida progresiva de nefronas. Es la segunda causa de insuficiencia renal crónica tras la diabetes mellitus."
+    },
+    {
+      "id": "kidneys_q6",
+      "topic": "filtracion_glomerular",
+      "difficulty": "HARD",
+      "text": "¿Cuántos litros de ultrafiltrado producen los riñones aproximadamente al día?",
+      "options": ["~18 L", "~50 L", "~180 L", "~500 L"],
+      "correctIndex": 2,
+      "explanation": "Los riñones filtran ~125 mL/min, equivalente a 180 litros de ultrafiltrado al día. El 99% se reabsorbe en los túbulos; solo ~1.5 L se excreta como orina."
+    },
+    {
+      "id": "kidneys_q7",
+      "topic": "insuficiencia_renal",
+      "difficulty": "HARD",
+      "text": "¿Qué valor de tasa de filtración glomerular (TFG) define insuficiencia renal crónica estadio G3?",
+      "options": ["TFG > 90 mL/min", "TFG 60-89 mL/min", "TFG 30-59 mL/min", "TFG 15-29 mL/min"],
+      "correctIndex": 2,
+      "explanation": "TFG 30-59 mL/min/1.73m² define el estadio G3 (disminución moderada). TFG normal es > 90. Por debajo de 15 es estadio G5 (fallo renal terminal)."
+    },
+    {
+      "id": "kidneys_q8",
+      "topic": "renina_angiotensina",
+      "difficulty": "HARD",
+      "text": "¿Cuál es el papel de la renina en la regulación de la presión arterial?",
+      "options": ["Convierte angiotensinógeno en angiotensina I, iniciando el sistema RAA", "Aumenta directamente la reabsorción de sodio en el túbulo colector", "Inhibe la secreción de aldosterona suprarrenal", "Dilata las arteriolas aferentes para reducir la filtración"],
+      "correctIndex": 0,
+      "explanation": "La renina, secretada ante baja presión o volumen, convierte angiotensinógeno en angiotensina I. La ECA la convierte en angiotensina II, que produce vasoconstricción y estimula aldosterona → retención de Na⁺ y agua → ↑ presión arterial."
+    }
+  ]
+}

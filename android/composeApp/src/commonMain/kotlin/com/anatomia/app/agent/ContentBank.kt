@@ -6,10 +6,7 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 @Serializable
-private data class QuestionsData(val organs: List<OrganQuestionsDto>)
-
-@Serializable
-private data class OrganQuestionsDto(val organId: String, val questions: List<QuestionDto>)
+private data class OrganQuestionsDto(val questions: List<QuestionDto>)
 
 @Serializable
 private data class QuestionDto(
@@ -20,27 +17,30 @@ private data class QuestionDto(
     val options: List<String>,
     val correctIndex: Int,
     val explanation: String,
-)
+) {
+    fun toQuestion(organId: String) = Question(
+        id           = id,
+        organId      = organId,
+        stem         = text,
+        options      = options,
+        correctIndex = correctIndex,
+        explanation  = explanation,
+        topic        = topic,
+        difficulty   = difficulty,
+    )
+}
 
 object ContentBank {
 
     @OptIn(ExperimentalResourceApi::class)
-    suspend fun load(): Map<String, List<Question>> {
-        val bytes = Res.readBytes("files/questions.json")
-        val data = Json.decodeFromString<QuestionsData>(bytes.decodeToString())
-        return data.organs.associate { organ ->
-            organ.organId to organ.questions.map { q ->
-                Question(
-                    id          = q.id,
-                    organId     = organ.organId,
-                    stem        = q.text,
-                    options     = q.options,
-                    correctIndex = q.correctIndex,
-                    explanation = q.explanation,
-                    topic       = q.topic,
-                    difficulty  = q.difficulty,
-                )
-            }
+    suspend fun loadForOrgan(organId: String): List<Question> {
+        val filename = "files/questions_$organId.json"
+        return try {
+            val bytes = Res.readBytes(filename)
+            val data = Json.decodeFromString<OrganQuestionsDto>(bytes.decodeToString())
+            data.questions.map { it.toQuestion(organId) }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -48,6 +48,8 @@ object ContentBank {
         "heart"   -> "el Corazón"
         "lungs"   -> "los Pulmones"
         "kidneys" -> "los Riñones"
-        else      -> organId
+        "brain"   -> "el Cerebro"
+        "liver"   -> "el Hígado"
+        else      -> "este órgano"
     }
 }

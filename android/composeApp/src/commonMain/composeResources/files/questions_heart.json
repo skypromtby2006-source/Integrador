@@ -1,0 +1,76 @@
+{
+  "questions": [
+    {
+      "id": "heart_q1",
+      "topic": "frecuencia_cardiaca",
+      "difficulty": "EASY",
+      "text": "¿Cuál es la frecuencia cardíaca normal en reposo para un adulto sano?",
+      "options": ["20 – 40 lpm", "60 – 100 lpm", "100 – 140 lpm", "140 – 180 lpm"],
+      "correctIndex": 1,
+      "explanation": "60-100 lpm es el rango normal. Por encima de 100 se llama taquicardia; por debajo de 60, bradicardia."
+    },
+    {
+      "id": "heart_q2",
+      "topic": "presion_arterial",
+      "difficulty": "EASY",
+      "text": "¿Cuál es el valor normal de presión arterial sistólica en un adulto?",
+      "options": ["< 80 mmHg", "< 120 mmHg", "< 160 mmHg", "< 200 mmHg"],
+      "correctIndex": 1,
+      "explanation": "La presión sistólica normal es < 120 mmHg. Entre 120-129 se considera elevada; ≥ 130 es hipertensión estadio 1."
+    },
+    {
+      "id": "heart_q3",
+      "topic": "taquicardia",
+      "difficulty": "MEDIUM",
+      "text": "¿Qué nombre recibe la condición cuando el corazón late a más de 100 lpm en reposo?",
+      "options": ["Bradicardia", "Arritmia", "Taquicardia", "Fibrilación"],
+      "correctIndex": 2,
+      "explanation": "Taquicardia es la frecuencia cardíaca superior a 100 lpm. Puede ser fisiológica (ejercicio) o patológica."
+    },
+    {
+      "id": "heart_q4",
+      "topic": "bradicardia",
+      "difficulty": "MEDIUM",
+      "text": "¿Cómo se llama la condición donde la frecuencia cardíaca es menor de 60 lpm?",
+      "options": ["Taquicardia", "Bradicardia", "Arritmia", "Fibrilación"],
+      "correctIndex": 1,
+      "explanation": "Bradicardia es una frecuencia cardíaca menor de 60 lpm. En atletas puede ser fisiológica; en otros casos indica un problema del sistema de conducción."
+    },
+    {
+      "id": "heart_q5",
+      "topic": "valvulas_cardiacas",
+      "difficulty": "MEDIUM",
+      "text": "¿Cuántas válvulas tiene el corazón humano?",
+      "options": ["2", "3", "4", "6"],
+      "correctIndex": 2,
+      "explanation": "El corazón tiene 4 válvulas: tricúspide y pulmonar en el lado derecho, mitral y aórtica en el izquierdo. Regulan el flujo sanguíneo unidireccional."
+    },
+    {
+      "id": "heart_q6",
+      "topic": "gasto_cardiaco",
+      "difficulty": "HARD",
+      "text": "¿Cuántos litros de sangre bombea el corazón aproximadamente en un día?",
+      "options": ["~700 L", "~7 000 L", "~70 L", "~70 000 L"],
+      "correctIndex": 1,
+      "explanation": "Con ~5 L/min × 1 440 min/día, el corazón bombea alrededor de 7 200 litros diarios."
+    },
+    {
+      "id": "heart_q7",
+      "topic": "insuficiencia_cardiaca",
+      "difficulty": "HARD",
+      "text": "¿Qué indica una fracción de eyección del ventrículo izquierdo (FEVI) menor al 40%?",
+      "options": ["Función cardíaca normal", "Insuficiencia cardíaca con fracción de eyección reducida", "Hipertensión pulmonar aislada", "Arritmia ventricular benigna"],
+      "correctIndex": 1,
+      "explanation": "FEVI < 40% indica insuficiencia cardíaca con fracción de eyección reducida (ICFEr). La FEVI normal es ≥ 55% y es el marcador pronóstico más importante en la insuficiencia cardíaca."
+    },
+    {
+      "id": "heart_q8",
+      "topic": "ciclo_cardiaco",
+      "difficulty": "HARD",
+      "text": "¿Qué ocurre durante la diástole ventricular?",
+      "options": ["Contracción y eyección de sangre hacia la aorta", "Cierre de las válvulas semilunares únicamente", "Relajación ventricular y llenado con sangre auricular", "Despolarización del nodo sinoauricular"],
+      "correctIndex": 2,
+      "explanation": "Durante la diástole el ventrículo se relaja y se llena de sangre proveniente de las aurículas. La sístole es la fase opuesta: contracción y eyección hacia aorta y arteria pulmonar."
+    }
+  ]
+}

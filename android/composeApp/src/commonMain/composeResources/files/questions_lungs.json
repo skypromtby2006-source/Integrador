@@ -1,0 +1,76 @@
+{
+  "questions": [
+    {
+      "id": "lungs_q1",
+      "topic": "frecuencia_respiratoria",
+      "difficulty": "EASY",
+      "text": "¿Cuál es la frecuencia respiratoria normal de un adulto en reposo?",
+      "options": ["6 – 10 /min", "12 – 20 /min", "25 – 35 /min", "40 – 50 /min"],
+      "correctIndex": 1,
+      "explanation": "12-20 respiraciones/min es el rango normal. Por encima de 25 se habla de taquipnea; por debajo de 12, de bradipnea."
+    },
+    {
+      "id": "lungs_q2",
+      "topic": "saturacion_oxigeno",
+      "difficulty": "EASY",
+      "text": "¿Qué valor de saturación de oxígeno en sangre (SpO₂) se considera normal?",
+      "options": ["70 – 80 %", "80 – 90 %", "95 – 100 %", "60 – 70 %"],
+      "correctIndex": 2,
+      "explanation": "SpO₂ normal es 95-100 %. Por debajo de 90 % se considera hipoxemia y requiere atención urgente."
+    },
+    {
+      "id": "lungs_q3",
+      "topic": "taquipnea",
+      "difficulty": "MEDIUM",
+      "text": "¿Qué nombre recibe la frecuencia respiratoria superior a 25 respiraciones/minuto?",
+      "options": ["Bradipnea", "Taquipnea", "Apnea", "Hiperpnea"],
+      "correctIndex": 1,
+      "explanation": "Taquipnea es la frecuencia respiratoria > 25/min. Puede indicar neumonía, embolia pulmonar, acidosis metabólica u otras patologías graves."
+    },
+    {
+      "id": "lungs_q4",
+      "topic": "hipoxemia",
+      "difficulty": "MEDIUM",
+      "text": "¿Cuál es el valor de SpO₂ que define hipoxemia clínicamente significativa?",
+      "options": ["< 99 %", "< 95 %", "< 90 %", "< 70 %"],
+      "correctIndex": 2,
+      "explanation": "SpO₂ < 90% define hipoxemia clínicamente significativa. Entre 90-94% es zona de alerta. Por debajo de 85% requiere intervención urgente."
+    },
+    {
+      "id": "lungs_q5",
+      "topic": "capacidad_pulmonar",
+      "difficulty": "MEDIUM",
+      "text": "¿Cuál es la capacidad pulmonar total aproximada de un adulto?",
+      "options": ["~1 L", "~3 L", "~6 L", "~12 L"],
+      "correctIndex": 2,
+      "explanation": "La capacidad pulmonar total ronda los 6 litros, aunque en reposo solo se usan ~0.5 L por ciclo (volumen tidal)."
+    },
+    {
+      "id": "lungs_q6",
+      "topic": "intercambio_gaseoso",
+      "difficulty": "HARD",
+      "text": "¿Dónde ocurre el intercambio de O₂ y CO₂ en el pulmón?",
+      "options": ["En los bronquios", "En los bronquiolos terminales", "En los alvéolos", "En la tráquea"],
+      "correctIndex": 2,
+      "explanation": "El intercambio gaseoso ocurre en los alvéolos, donde la membrana alvéolo-capilar tiene solo ~0.5 μm de grosor. La superficie alveolar total es ~70 m², maximizando la difusión."
+    },
+    {
+      "id": "lungs_q7",
+      "topic": "compliance_pulmonar",
+      "difficulty": "HARD",
+      "text": "¿Qué mide la distensibilidad (compliance) pulmonar?",
+      "options": ["La velocidad del flujo de aire en bronquios", "La resistencia de las vías aéreas superiores", "La facilidad con que el pulmón se expande ante un cambio de presión", "La cantidad de O₂ transportada por la hemoglobina"],
+      "correctIndex": 2,
+      "explanation": "La compliance pulmonar mide el cambio de volumen por unidad de cambio de presión (ΔV/ΔP). Está reducida en fibrosis pulmonar y aumentada en enfisema."
+    },
+    {
+      "id": "lungs_q8",
+      "topic": "epoc",
+      "difficulty": "HARD",
+      "text": "¿Qué caracteriza principalmente a la EPOC (Enfermedad Pulmonar Obstructiva Crónica)?",
+      "options": ["Inflamación aguda del parénquima pulmonar", "Obstrucción crónica y progresiva al flujo de aire, generalmente irreversible", "Colapso súbito de un pulmón", "Acumulación de líquido en el espacio pleural"],
+      "correctIndex": 1,
+      "explanation": "La EPOC se define por obstrucción crónica del flujo aéreo, usualmente causada por tabaquismo. Incluye enfisema y bronquitis crónica. Se confirma cuando el cociente FEV1/FVC < 0.70 post-broncodilatador."
+    }
+  ]
+}

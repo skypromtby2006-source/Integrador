@@ -53,7 +53,7 @@ class AgentViewModel(private val organId: String) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            questions = ContentBank.load()[organId] ?: emptyList()
+            questions = ContentBank.loadForOrgan(organId)
             initializeChat()
         }
     }
