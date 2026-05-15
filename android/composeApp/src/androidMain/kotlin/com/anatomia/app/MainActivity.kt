@@ -12,8 +12,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
 
         // Ocultar status bar y barra de navegación — modo inmersivo
         val controller = WindowInsetsControllerCompat(window, window.decorView)

@@ -1,0 +1,35 @@
+{
+  "date": "2025-05-15",
+  "subject": "Sistema circulatorio",
+  "progress_pct": 40,
+  "tasks": [
+    {
+      "id": "task_001",
+      "title": "El viaje de la sangre",
+      "type": "lectura",
+      "duration_min": 5,
+      "completed": true
+    },
+    {
+      "id": "task_002",
+      "title": "Latido del corazón",
+      "type": "video_3d",
+      "duration_min": 3,
+      "completed": true
+    },
+    {
+      "id": "task_003",
+      "title": "Diseña una válvula",
+      "type": "reto_creativo",
+      "duration_min": 10,
+      "completed": false
+    },
+    {
+      "id": "task_004",
+      "title": "Quiz · 4 preguntas",
+      "type": "repaso",
+      "duration_min": 4,
+      "completed": false
+    }
+  ]
+}

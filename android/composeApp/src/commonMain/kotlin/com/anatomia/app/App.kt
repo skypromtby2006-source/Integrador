@@ -1,36 +1,69 @@
 package com.anatomia.app
 
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.anatomia.app.ui.screen.agent.AgentScreen
-import com.anatomia.app.ui.screen.bodymodel.BodyModelScreen
+import com.anatomia.app.navigation.Screen
+import com.anatomia.app.ui.screens.*
+import com.anatomia.app.ui.theme.AppTheme
+import com.anatomia.app.ui.theme.DidactaiTheme
 
 @Composable
 fun App(modifier: Modifier = Modifier) {
-    val navController = rememberNavController()
+    var appTheme      by remember { mutableStateOf(AppTheme.AUTO) }
+    var fontSizeIndex by remember { mutableIntStateOf(2) }
 
-    NavHost(
-        navController = navController,
-        startDestination = "body_model",
-        modifier = modifier,
+    DidactaiTheme(
+        appTheme      = appTheme,
+        fontSizeIndex = fontSizeIndex
     ) {
-        composable("body_model") {
-            BodyModelScreen(
-                onNavigateToAgent = { organId ->
-                    navController.navigate("agent/$organId")
-                },
-                onNavigateBack = {},
-            )
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color    = MaterialTheme.colorScheme.background
+        ) {
+        val navController = rememberNavController()
+
+        NavHost(
+            navController    = navController,
+            startDestination = Screen.Login.route,
+            modifier         = modifier,
+        ) {
+            composable(Screen.Login.route) {
+                LoginScreen(navController)
+            }
+            composable(Screen.Home.route) {
+                HomeScreen(navController)
+            }
+            composable(Screen.Agent.route) {
+                DidactaiAgentScreen(navController)
+            }
+            composable(Screen.Quiz.route) {
+                QuizScreen(navController)
+            }
+            composable(Screen.QuizResults.route) {
+                QuizResultsScreen(navController)
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    navController = navController,
+                    appTheme      = appTheme,
+                    fontSizeIndex = fontSizeIndex,
+                    onThemeChange = { appTheme = it },
+                    onFontChange  = { fontSizeIndex = it }
+                )
+            }
+            composable(Screen.History.route) {
+                HistoryScreen(navController)
+            }
+            composable(Screen.EditProfile.route) {
+                EditProfileScreen(navController)
+            }
         }
-        composable("agent/{organId}") { backStackEntry ->
-            val organId = backStackEntry.arguments?.getString("organId") ?: "heart"
-            AgentScreen(
-                organId = organId,
-                onNavigateBack = { navController.popBackStack() },
-            )
-        }
+        } // Surface
     }
 }
