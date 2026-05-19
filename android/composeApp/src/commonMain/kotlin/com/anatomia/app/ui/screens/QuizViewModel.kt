@@ -2,6 +2,7 @@ package com.anatomia.app.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.anatomia.app.agent.AgentRepository
 import com.anatomia.app.agent.ContentBank
 import com.anatomia.app.agent.Question
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,11 +40,16 @@ sealed class QuizUiState {
 
 class QuizViewModel : ViewModel() {
 
+    private val repository = AgentRepository()
+
     private val _uiState = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
+    private var currentOrganId: String = "heart"
+
     fun loadQuiz(organId: String) {
         if (_uiState.value !is QuizUiState.Loading) return
+        currentOrganId = organId
         viewModelScope.launch {
             try {
                 val questions = ContentBank.loadForOrgan(organId)
@@ -100,6 +106,16 @@ class QuizViewModel : ViewModel() {
     }
 
     private fun finishQuiz(questions: List<Question>, answers: Map<Int, Int?>) {
+        answers.forEach { (idx, selected) ->
+            if (selected != null) {
+                val q = questions[idx]
+                repository.recordAnswer(
+                    organId    = currentOrganId,
+                    questionId = q.id,
+                    wasCorrect = selected == q.correctIndex,
+                )
+            }
+        }
         val score = answers.entries.count { (idx, selected) ->
             selected != null && selected == questions[idx].correctIndex
         }
