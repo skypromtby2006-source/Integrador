@@ -24,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.anatomia.app.navigation.Screen
 import com.anatomia.app.ui.theme.LocalSuccessColors
 
 // ── Data models ──────────────────────────────────────────────────────────────
@@ -102,7 +101,6 @@ fun HistoryScreen(navController: NavHostController) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { HistoryTopBar(navController) },
-        bottomBar = { HistoryNavBar(navController) },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
@@ -427,39 +425,3 @@ private fun EndNote() {
     }
 }
 
-@Composable
-private fun HistoryNavBar(navController: NavHostController) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 0.dp,
-    ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.History.route) { inclusive = true }
-                }
-            },
-            icon = { Icon(Icons.Rounded.Today, contentDescription = "Hoy") },
-            label = { Text("Hoy") },
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Rounded.ViewInAr, contentDescription = "Atlas 3D") },
-            label = { Text("Atlas 3D") },
-        )
-        NavigationBarItem(
-            selected = true,
-            onClick = {},
-            icon = { Icon(Icons.Rounded.History, contentDescription = "Historial") },
-            label = { Text("Historial") },
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Rounded.Person, contentDescription = "Yo") },
-            label = { Text("Yo") },
-        )
-    }
-}

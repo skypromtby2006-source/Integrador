@@ -5,10 +5,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.anatomia.app.navigation.Screen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.anatomia.app.ui.screens.*
 import com.anatomia.app.ui.theme.AppTheme
 import com.anatomia.app.ui.theme.DidactaiTheme
@@ -42,11 +45,25 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.Agent.route) {
                 DidactaiAgentScreen(navController)
             }
-            composable(Screen.Quiz.route) {
-                QuizScreen(navController)
+            composable(
+                route     = Screen.Quiz.route,
+                arguments = listOf(navArgument("organId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val organId      = backStackEntry.arguments?.getString("organId") ?: "heart"
+                val quizViewModel: QuizViewModel = viewModel(backStackEntry)
+                QuizScreen(
+                    navController = navController,
+                    organId       = organId,
+                    viewModel     = quizViewModel,
+                )
             }
-            composable(Screen.QuizResults.route) {
-                QuizResultsScreen(navController)
+            composable(Screen.QuizResults.route) { entry ->
+                val quizEntry    = remember(entry) { navController.getBackStackEntry(Screen.Quiz.route) }
+                val quizViewModel: QuizViewModel = viewModel(quizEntry)
+                QuizResultsScreen(
+                    navController = navController,
+                    viewModel     = quizViewModel,
+                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(

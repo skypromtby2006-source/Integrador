@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +30,9 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavHostController
 import com.anatomia.app.data.PlanRepository
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import com.anatomia.app.data.model.DailyPlan
 import com.anatomia.app.data.model.PlanTask
 import com.anatomia.app.navigation.Screen
@@ -57,12 +61,13 @@ fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val plan = remember { PlanRepository.loadFromContext(context) }
 
-    var tasks by remember { mutableStateOf(plan.tasks) }
+    var completedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
+    val tasks = plan.tasks.map { it.copy(completed = it.id in completedIds) }
     var taskToUncheck by remember { mutableStateOf<PlanTask?>(null) }
     var showNotifications by remember { mutableStateOf(false) }
 
-    val completedCount = tasks.count { it.completed }
-    val totalMin = tasks.sumOf { it.durationMin }
+    val completedCount = completedIds.size
+    val totalMin = plan.tasks.sumOf { it.durationMin }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -87,10 +92,9 @@ fun HomeScreen(navController: NavHostController) {
                     tasks = tasks,
                     completedCount = completedCount,
                     totalMin = totalMin,
-                    onTaskChecked = { index, task, isChecked ->
+                    onTaskChecked = { _, task, isChecked ->
                         if (isChecked) {
-                            tasks = tasks.toMutableList()
-                                .also { it[index] = task.copy(completed = true) }
+                            completedIds = completedIds + task.id
                         } else {
                             taskToUncheck = task
                         }
@@ -115,11 +119,7 @@ fun HomeScreen(navController: NavHostController) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val idx = tasks.indexOfFirst { it.id == task.id }
-                    if (idx >= 0) {
-                        tasks = tasks.toMutableList()
-                            .also { it[idx] = task.copy(completed = false) }
-                    }
+                    completedIds = completedIds - task.id
                     taskToUncheck = null
                 }) { Text("Desmarcar") }
             },
@@ -140,6 +140,33 @@ private fun GreetingBar(
 ) {
     val successColors = LocalSuccessColors.current
     val density = LocalDensity.current
+
+    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    val dayName = when (today.dayOfWeek.name) {
+        "MONDAY"    -> "LUNES"
+        "TUESDAY"   -> "MARTES"
+        "WEDNESDAY" -> "MIÉRCOLES"
+        "THURSDAY"  -> "JUEVES"
+        "FRIDAY"    -> "VIERNES"
+        "SATURDAY"  -> "SÁBADO"
+        else        -> "DOMINGO"
+    }
+    val monthName = when (today.month.name) {
+        "JANUARY"   -> "ENE"
+        "FEBRUARY"  -> "FEB"
+        "MARCH"     -> "MAR"
+        "APRIL"     -> "ABR"
+        "MAY"       -> "MAY"
+        "JUNE"      -> "JUN"
+        "JULY"      -> "JUL"
+        "AUGUST"    -> "AGO"
+        "SEPTEMBER" -> "SEP"
+        "OCTOBER"   -> "OCT"
+        "NOVEMBER"  -> "NOV"
+        else        -> "DIC"
+    }
+    val dateLabel = "$dayName · ${today.dayOfMonth} $monthName"
+
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
     val waveRotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -167,7 +194,7 @@ private fun GreetingBar(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "JUEVES · 14 MAY",
+                dateLabel,
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp),
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -364,7 +391,7 @@ private fun HeroCard(navController: NavHostController, plan: DailyPlan) {
                     Text("${plan.progressPct}%", style = MaterialTheme.typography.labelSmall, color = Mint)
                 }
                 Button(
-                    onClick = { navController.navigate(Screen.Agent.route) },
+                    onClick = { navController.navigate(Screen.Quiz.createRoute("heart")) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Mint,
                         contentColor = Color(0xFF002417),
@@ -544,13 +571,25 @@ private fun HomeNavBar(navController: NavHostController) {
         )
         NavigationBarItem(
             selected = false,
-            onClick = { navController.navigate(Screen.History.route) },
-            icon = { Icon(Icons.Rounded.History, contentDescription = "Historial") },
-            label = { Text("Historial") },
+            onClick = {
+                navController.navigate(Screen.Agent.route) {
+                    popUpTo(Screen.Home.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+            icon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = "Agente") },
+            label = { Text("Agente") },
         )
         NavigationBarItem(
             selected = false,
-            onClick = {},
+            onClick = {
+                navController.navigate(Screen.Settings.route) {
+                    popUpTo(Screen.Home.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
             icon = { Icon(Icons.Rounded.Person, contentDescription = "Yo") },
             label = { Text("Yo") },
         )

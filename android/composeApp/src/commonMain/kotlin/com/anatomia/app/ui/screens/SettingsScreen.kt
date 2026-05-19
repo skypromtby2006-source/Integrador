@@ -217,6 +217,30 @@ fun SettingsScreen(
                 )
             }
 
+            // Actividad — historial
+            SettingsSection(title = "ACTIVIDAD") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate(Screen.History.route) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(PrimaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Rounded.History, contentDescription = null, tint = OnPrimaryContainer, modifier = Modifier.size(20.dp))
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Historial", style = MaterialTheme.typography.titleSmall, color = OnSurface)
+                        Text("Actividad y sesiones anteriores", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                    }
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = OnSurfaceVariant)
+                }
+            }
+
             // Cuenta
             SettingsSection(title = "CUENTA") {
                 Row(

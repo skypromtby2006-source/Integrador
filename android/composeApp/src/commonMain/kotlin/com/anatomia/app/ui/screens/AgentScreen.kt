@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,33 +20,50 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.anatomia.app.navigation.Screen
 import com.anatomia.app.ui.theme.*
 
 @Composable
-fun DidactaiAgentScreen(navController: NavHostController) {
+fun DidactaiAgentScreen(
+    navController: NavHostController,
+    viewModel    : AgentDashboardViewModel = viewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    if (state.isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { AgentTopBar(navController) },
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface))
-                    )
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            ) {
-                Button(
-                    onClick = { navController.navigate(Screen.Quiz.route) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface))
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
-                    Text("Comenzar Quiz", style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp))
-                    Spacer(Modifier.width(8.dp))
-                    Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Button(
+                        onClick = { navController.navigate(Screen.Quiz.createRoute(state.organId)) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text("Comenzar Quiz", style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp))
+                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
                 }
+                AgentNavBar(navController)
             }
         }
     ) { innerPadding ->
@@ -58,11 +74,18 @@ fun DidactaiAgentScreen(navController: NavHostController) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            AgentHeroCard()
-            BeliefsSection()
-            GoalSection()
-            PlanSection()
-            ReflectionSection()
+            AgentHeroCard(
+                userName    = state.userName,
+                weekNumber  = state.weekNumber,
+                weekSummary = state.weekSummary,
+            )
+            BeliefsSection(beliefs = state.beliefs)
+            GoalSection(goal = state.goal)
+            PlanSection(steps = state.planSteps)
+            ReflectionSection(
+                selectedMood  = state.selectedMood,
+                onMoodSelected = viewModel::selectMood,
+            )
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -89,11 +112,6 @@ private fun AgentTopBar(navController: NavHostController) {
                 }
             }
         },
-        navigationIcon = {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Atrás")
-            }
-        },
         actions = {
             IconButton(onClick = {}) {
                 Icon(Icons.Rounded.Tune, contentDescription = "Ajustes del agente")
@@ -104,7 +122,52 @@ private fun AgentTopBar(navController: NavHostController) {
 }
 
 @Composable
-private fun AgentHeroCard() {
+private fun AgentNavBar(navController: NavHostController) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 0.dp,
+    ) {
+        NavigationBarItem(
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Home.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+            icon = { Icon(Icons.Rounded.Today, contentDescription = "Hoy") },
+            label = { Text("Hoy") },
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = {},
+            icon = { Icon(Icons.Rounded.ViewInAr, contentDescription = "Atlas 3D") },
+            label = { Text("Atlas 3D") },
+        )
+        NavigationBarItem(
+            selected = true,
+            onClick = {},
+            icon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = "Agente") },
+            label = { Text("Agente") },
+        )
+        NavigationBarItem(
+            selected = false,
+            onClick = {
+                navController.navigate(Screen.Settings.route) {
+                    popUpTo(Screen.Home.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+            icon = { Icon(Icons.Rounded.Person, contentDescription = "Yo") },
+            label = { Text("Yo") },
+        )
+    }
+}
+
+@Composable
+private fun AgentHeroCard(userName: String, weekNumber: Int, weekSummary: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,13 +195,13 @@ private fun AgentHeroCard() {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Mint, modifier = Modifier.size(22.dp))
                 }
                 Column {
-                    Text("Buenos días, Ana", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiary)
-                    Text("RESUMEN · SEMANA 6", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp), color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.75f))
+                    Text("Buenos días, $userName", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiary)
+                    Text("RESUMEN · SEMANA $weekNumber", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp), color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.75f))
                 }
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Esta semana avanzaste un 40% en circulatorio. Vi que te concentras mejor por las tardes — vamos a aprovecharlo.",
+                weekSummary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.88f),
             )
@@ -162,7 +225,7 @@ private fun SectionHeader(title: String, bdiLabel: String, iconBg: Color, iconTi
 }
 
 @Composable
-private fun BeliefsSection() {
+private fun BeliefsSection(beliefs: List<BeliefUiItem>) {
     val successColors = LocalSuccessColors.current
     SectionHeader("Lo que noté en ti", "creencias", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer) {
         Icon(Icons.Rounded.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -174,35 +237,42 @@ private fun BeliefsSection() {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column {
-            BeliefRow(
-                bulletColor = successColors.success,
-                tagText = "↑ fuerte",
-                tagBg = successColors.successContainer,
-                tagFg = successColors.onSuccessContainer,
-                title = "Recuerdas las funciones del corazón",
-                hint = "acertaste 8 de 8 preguntas en tu último quiz",
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            BeliefRow(
-                bulletColor = MaterialTheme.colorScheme.primary,
-                tagText = "patrón",
-                tagBg = MaterialTheme.colorScheme.primaryContainer,
-                tagFg = MaterialTheme.colorScheme.onPrimaryContainer,
-                title = "Aprendes mejor por las tardes",
-                hint = "tu retención mejora un 23% entre 5–7 PM",
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            BeliefRow(
-                bulletColor = MaterialTheme.colorScheme.tertiary,
-                tagText = "a mejorar",
-                tagBg = MaterialTheme.colorScheme.tertiaryContainer,
-                tagFg = MaterialTheme.colorScheme.onTertiaryContainer,
-                title = "Te cuesta el flujo en arterias vs venas",
-                hint = "2 errores seguidos · te sugiero un mini-reto visual",
-            )
+            beliefs.forEachIndexed { index, belief ->
+                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                val (bulletColor, tagText, tagBg, tagFg) = when (belief.level) {
+                    BeliefLevel.STRONG  -> Quadruple(
+                        successColors.success,
+                        "↑ fuerte",
+                        successColors.successContainer,
+                        successColors.onSuccessContainer,
+                    )
+                    BeliefLevel.PATTERN -> Quadruple(
+                        MaterialTheme.colorScheme.primary,
+                        "patrón",
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    BeliefLevel.WEAK    -> Quadruple(
+                        MaterialTheme.colorScheme.tertiary,
+                        "a mejorar",
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                        MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+                BeliefRow(
+                    bulletColor = bulletColor,
+                    tagText     = tagText,
+                    tagBg       = tagBg,
+                    tagFg       = tagFg,
+                    title       = belief.title,
+                    hint        = belief.detail,
+                )
+            }
         }
     }
 }
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 private fun BeliefRow(bulletColor: Color, tagText: String, tagBg: Color, tagFg: Color, title: String, hint: String) {
@@ -227,7 +297,7 @@ private fun BeliefRow(bulletColor: Color, tagText: String, tagBg: Color, tagFg: 
 }
 
 @Composable
-private fun GoalSection() {
+private fun GoalSection(goal: GoalUiState?) {
     SectionHeader("Tu meta", "objetivo", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer) {
         Icon(Icons.Rounded.TrackChanges, contentDescription = null, modifier = Modifier.size(18.dp))
     }
@@ -239,13 +309,19 @@ private fun GoalSection() {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("ESTA SEMANA", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-            Text("Dominar el ciclo circulatorio completo", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+            Text(
+                goal?.title ?: "—",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 12.dp)) {
-                GoalPill(Icons.Rounded.Schedule, "2 días restantes")
-                GoalPill(Icons.Rounded.TrendingUp, "buen ritmo")
+                GoalPill(Icons.Rounded.Schedule, "${goal?.daysRemaining ?: "—"} días restantes")
+                GoalPill(Icons.Rounded.TrendingUp, goal?.rhythm ?: "—")
             }
+            val progressPct = goal?.progressPct ?: 0f
             LinearProgressIndicator(
-                progress = { 0.65f },
+                progress = { progressPct },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f),
@@ -255,7 +331,11 @@ private fun GoalSection() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("65% completado", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(
+                    "${(progressPct * 100).toInt()}% completado",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
                 TextButton(onClick = {}) {
                     Icon(Icons.Rounded.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
@@ -278,18 +358,8 @@ private fun GoalPill(icon: androidx.compose.ui.graphics.vector.ImageVector, labe
     }
 }
 
-private data class PlanStep(val num: Int, val title: String, val reason: String, val time: String, val state: StepState)
-private enum class StepState { DONE, CURRENT, PENDING }
-
-private val agentPlanSteps = listOf(
-    PlanStep(1, "Revisar latido del corazón", "base para entender el ciclo", "3 min", StepState.DONE),
-    PlanStep(2, "Reto: arterias vs venas", "te cuesta esta distinción — práctica visual", "8 min", StepState.CURRENT),
-    PlanStep(3, "Diseñar una válvula", "creas conocimiento al diseñar", "10 min", StepState.PENDING),
-    PlanStep(4, "Quiz de cierre", "consolida lo aprendido hoy", "4 min", StepState.PENDING),
-)
-
 @Composable
-private fun PlanSection() {
+private fun PlanSection(steps: List<PlanStepUiItem>) {
     SectionHeader("Mi plan para ti", "próximos pasos", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer) {
         Icon(Icons.Rounded.Route, contentDescription = null, modifier = Modifier.size(18.dp))
     }
@@ -300,7 +370,7 @@ private fun PlanSection() {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column {
-            agentPlanSteps.forEachIndexed { index, step ->
+            steps.forEachIndexed { index, step ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 PlanStepRow(step)
             }
@@ -309,38 +379,38 @@ private fun PlanSection() {
 }
 
 @Composable
-private fun PlanStepRow(step: PlanStep) {
+private fun PlanStepRow(step: PlanStepUiItem) {
     val successColors = LocalSuccessColors.current
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val (circleBg, circleFg) = when (step.state) {
-            StepState.DONE    -> successColors.success to successColors.onSuccess
-            StepState.CURRENT -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
-            StepState.PENDING -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
+        val (circleBg, circleFg) = when (step.status) {
+            StepStatus.DONE    -> successColors.success to successColors.onSuccess
+            StepStatus.CURRENT -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+            StepStatus.PENDING -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurfaceVariant
         }
         Box(
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
                 .background(circleBg)
-                .then(if (step.state == StepState.PENDING) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape) else Modifier),
+                .then(if (step.status == StepStatus.PENDING) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
-            if (step.state == StepState.DONE) {
+            if (step.status == StepStatus.DONE) {
                 Icon(Icons.Rounded.Check, contentDescription = null, tint = circleFg, modifier = Modifier.size(16.dp))
             } else {
-                Text(step.num.toString(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium), color = circleFg)
+                Text(step.order.toString(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium), color = circleFg)
             }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 step.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (step.state == StepState.DONE) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                textDecoration = if (step.state == StepState.DONE) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                color = if (step.status == StepStatus.DONE) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (step.status == StepStatus.DONE) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(Icons.Rounded.Psychology, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
@@ -348,7 +418,7 @@ private fun PlanStepRow(step: PlanStep) {
             }
         }
         Text(
-            step.time,
+            "${step.durationMin} min",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer).padding(horizontal = 10.dp, vertical = 4.dp),
@@ -357,14 +427,14 @@ private fun PlanStepRow(step: PlanStep) {
 }
 
 @Composable
-private fun ReflectionSection() {
+private fun ReflectionSection(selectedMood: MoodOption?, onMoodSelected: (MoodOption) -> Unit) {
     val successColors = LocalSuccessColors.current
     SectionHeader("¿Cómo te sientes hoy?", "reflexión", successColors.successContainer, successColors.onSuccessContainer) {
         Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
     }
     Spacer(Modifier.height(8.dp))
-    var selectedMood by remember { mutableStateOf(3) }
     val moods = listOf("😵‍💫", "😴", "🙂", "🤓", "🚀")
+    val moodOptions = MoodOption.values()
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -376,12 +446,14 @@ private fun ReflectionSection() {
             Text("esto me ayuda a ajustar el ritmo y los retos", style = MaterialTheme.typography.bodySmall, color = successColors.onSuccessContainer.copy(alpha = 0.8f), modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 moods.forEachIndexed { index, emoji ->
+                    val option    = moodOptions[index]
+                    val isSelected = selectedMood == option
                     Surface(
-                        onClick = { selectedMood = index },
+                        onClick = { onMoodSelected(option) },
                         modifier = Modifier.weight(1f).aspectRatio(1f),
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                        border = if (selectedMood == index)
+                        border = if (isSelected)
                             androidx.compose.foundation.BorderStroke(2.dp, successColors.success)
                         else
                             androidx.compose.foundation.BorderStroke(1.dp, successColors.onSuccessContainer.copy(alpha = 0.18f)),
