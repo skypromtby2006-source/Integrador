@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anatomia.app.agent.AgentRepository
 import com.anatomia.app.agent.DecisionEngine
+import com.anatomia.app.db.ProgressRepository
+import com.anatomia.app.db.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,8 +98,13 @@ class AgentDashboardViewModel : ViewModel() {
             _uiState.update {
                 AgentDashboardUiState(
                     isLoading   = false,
-                    userName    = "Ana",        // TODO: reemplazar con UserRepository (SQLDelight)
-                    weekNumber  = 6,            // TODO: calcular desde historial (SQLDelight)
+                    userName    = SessionRepository.load()
+                        ?.name
+                        ?.split(" ")
+                        ?.firstOrNull()
+                        ?.replaceFirstChar { it.uppercase() }
+                        ?: "Estudiante",
+                    weekNumber  = calculateCurrentWeek(),
                     weekSummary = weekSummary,
                     beliefs     = beliefs,
                     goal        = goal,
@@ -114,6 +121,18 @@ class AgentDashboardViewModel : ViewModel() {
     }
 
     // ── Privado ──────────────────────────────────────────────────────────────
+
+    private fun calculateCurrentWeek(): Int {
+        return try {
+            val firstAnswerAt = ProgressRepository.getFirstAnsweredAt()
+            if (firstAnswerAt == null) return 1
+            val msPerWeek = 7L * 24 * 60 * 60 * 1000
+            val weeksSince = ((System.currentTimeMillis() - firstAnswerAt) / msPerWeek).toInt()
+            (weeksSince + 1).coerceAtLeast(1)
+        } catch (e: Exception) {
+            1
+        }
+    }
 
     private fun buildBeliefs(
         progress: com.anatomia.app.agent.StudentProgress,

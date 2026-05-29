@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Didactai — Historial</title>
+  <link rel="stylesheet" href="m3-theme.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <style>
+    /* History es sub-pantalla: SIN bottom nav */
+    .screen { min-height: 100dvh; }
+
+    /* Search bar */
+    .search-wrap {
+      display: flex; align-items: center; gap: 8px;
+      margin: 8px 16px 12px;
+      background: var(--surface-container);
+      border-radius: var(--radius-full); padding: 8px 16px;
+    }
+    .search-wrap input {
+      flex: 1; border: none; background: transparent;
+      font-size: 16px; color: var(--on-surface); outline: none; font-family: inherit;
+    }
+    .search-wrap input::placeholder { color: var(--on-surface-variant); }
+
+    /* Filter chips */
+    .filter-row {
+      display: flex; gap: 8px; padding: 0 16px 12px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    /* Group header */
+    .group-header {
+      display: flex; align-items: baseline; gap: 8px;
+      padding: 8px 16px 4px;
+    }
+    .group-label { font-size: 13px; font-weight: 500; color: var(--on-surface); }
+    .group-count { font-size: 12px; color: var(--on-surface-variant); }
+
+    /* History entry */
+    .entry-card {
+      margin: 0 16px 8px;
+      border-radius: var(--radius-md);
+      background: var(--surface-container-low);
+      overflow: hidden; cursor: pointer;
+    }
+    .entry-main {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+    }
+    .entry-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .entry-body { flex: 1; }
+    .entry-title { font-size: 15px; font-weight: 500; color: var(--on-surface); line-height: 1.3; }
+    .entry-meta  { font-size: 12px; color: var(--on-surface-variant); margin-top: 2px; }
+    .entry-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .entry-time  { font-size: 11px; color: var(--on-surface-variant); }
+    .entry-xp    {
+      font-size: 11px; font-weight: 500;
+      background: var(--surface-container);
+      border-radius: var(--radius-full); padding: 2px 8px;
+      color: var(--on-surface-variant);
+    }
+    .entry-score {
+      font-size: 12px; font-weight: 500; border-radius: 4px; padding: 1px 6px;
+    }
+    .score-good { background: var(--success-container); color: var(--on-success-container); }
+    .score-mid  { background: var(--primary-container); color: var(--on-primary-container); }
+    .score-warn { background: var(--error-container);   color: var(--on-error-container); }
+
+    /* Expanded detail */
+    .entry-detail {
+      border-top: 1px solid var(--outline-variant);
+      padding: 10px 14px 12px 62px;
+      display: none;
+    }
+    .entry-detail.open { display: block; }
+    .entry-insight { font-size: 13px; color: var(--on-surface-variant); line-height: 1.5; }
+    .entry-insight strong { color: var(--primary); font-weight: 500; }
+
+    .scroll-content { padding-bottom: 24px; }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Top bar — back → Settings_C.html (sub-pantalla, sin bottom nav) -->
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-back" onclick="goTo('Settings_C.html')">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
+    <div class="bar-title">Historial</div>
+    <div class="bar-actions">
+      <button class="icon-btn"><span class="material-symbols-rounded">filter_list</span></button>
+    </div>
+  </div>
+
+  <div class="scroll-content">
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <span class="material-symbols-rounded" style="color:var(--on-surface-variant);font-size:20px">search</span>
+      <input type="text" placeholder="Buscar en historial…">
+      <span class="material-symbols-rounded" style="color:var(--on-surface-variant);font-size:20px;cursor:pointer">mic</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-row">
+      <button class="chip chip-filter active">Todo</button>
+      <button class="chip chip-filter">Quiz</button>
+      <button class="chip chip-filter">Agente</button>
+      <button class="chip chip-filter">Lección</button>
+    </div>
+
+    <!-- Group: Hoy -->
+    <div class="group-header">
+      <span class="group-label">Hoy · sáb 17 may</span>
+      <span class="group-count">3 actividades</span>
+    </div>
+
+    <div class="entry-card quiz" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--primary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-primary-container);font-size:20px">quiz</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Quiz · Cámaras del corazón</div>
+          <div class="entry-meta">Circulatorio · 5:32</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">17:42</span>
+          <span class="entry-xp">+120 XP</span>
+          <span class="entry-score score-good">6/8</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight"><strong>Insight ·</strong> aciertas en cámaras, mezclas arterias / venas.</div>
+      </div>
+    </div>
+
+    <div class="entry-card agent" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--tertiary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-tertiary-container);font-size:20px">auto_awesome</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Conversación · ¿Por qué late el corazón?</div>
+          <div class="entry-meta">Circulatorio · 12 turnos</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">16:18</span>
+          <span class="entry-xp">+45 XP</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight">El agente detectó que tienes dudas sobre el sistema eléctrico del corazón. Sesión de 8 min.</div>
+      </div>
+    </div>
+
+    <div class="entry-card lesson" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--secondary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-secondary-container);font-size:20px">menu_book</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Lección · El latido del corazón</div>
+          <div class="entry-meta">Circulatorio · lectura</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">10:05</span>
+          <span class="entry-xp">+30 XP</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight">Completaste la lectura completa. Tiempo estimado: 10 min.</div>
+      </div>
+    </div>
+
+    <!-- Group: Ayer -->
+    <div class="group-header" style="margin-top:8px">
+      <span class="group-label">Ayer · vie 16 may</span>
+      <span class="group-count">2 actividades</span>
+    </div>
+
+    <div class="entry-card quiz" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--primary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-primary-container);font-size:20px">quiz</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Quiz · Arterias y venas</div>
+          <div class="entry-meta">Circulatorio · 7:14</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">18:30</span>
+          <span class="entry-xp">+80 XP</span>
+          <span class="entry-score score-mid">4/8</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight"><strong>Insight ·</strong> confundes arterias pulmonares con venas pulmonares.</div>
+      </div>
+    </div>
+
+    <div class="entry-card agent" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--tertiary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-tertiary-container);font-size:20px">auto_awesome</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Sesión de repaso · Flujo sanguíneo</div>
+          <div class="entry-meta">Circulatorio · 6 turnos</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">17:00</span>
+          <span class="entry-xp">+25 XP</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight">Repaso rápido sugerido por el agente antes del quiz.</div>
+      </div>
+    </div>
+
+    <!-- Group: Semana anterior -->
+    <div class="group-header" style="margin-top:8px">
+      <span class="group-label">Semana anterior</span>
+      <span class="group-count">5 actividades</span>
+    </div>
+
+    <div class="entry-card quiz" onclick="toggleEntry(this)">
+      <div class="entry-main">
+        <div class="entry-icon" style="background:var(--primary-container)">
+          <span class="material-symbols-rounded" style="color:var(--on-primary-container);font-size:20px">quiz</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-title">Quiz · Válvulas del corazón</div>
+          <div class="entry-meta">Circulatorio · 4:50</div>
+        </div>
+        <div class="entry-right">
+          <span class="entry-time">jue · 19:22</span>
+          <span class="entry-xp">+150 XP</span>
+          <span class="entry-score score-good">8/8</span>
+        </div>
+      </div>
+      <div class="entry-detail">
+        <div class="entry-insight">¡Puntaje perfecto! El agente aumentó la dificultad.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function goTo(page) { window.location.href = page; }
+
+  function toggleEntry(card) {
+    const detail = card.querySelector('.entry-detail');
+    detail.classList.toggle('open');
+  }
+
+  // Filter chips — single select + mostrar/ocultar entradas por tipo
+  document.querySelectorAll('.chip-filter').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      document.querySelectorAll('.chip-filter').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      var label = chip.textContent.trim().toLowerCase();
+      document.querySelectorAll('.entry-card').forEach(function(entry) {
+        var show = label === 'todo' ||
+                   (label === 'quiz'    && entry.classList.contains('quiz'))  ||
+                   (label === 'agente'  && entry.classList.contains('agent')) ||
+                   (label === 'lección' && entry.classList.contains('lesson'));
+        entry.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+</body>
+</html>

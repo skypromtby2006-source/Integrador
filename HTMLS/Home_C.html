@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Didactai — Hoy</title>
+  <link rel="stylesheet" href="m3-theme.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <style>
+    .screen { height: 100dvh; }
+    .scroll-content { padding: 0 0 8px; }
+
+    /* Greeting bar */
+    .greeting-bar {
+      display: flex; align-items: center;
+      padding: 8px 4px 12px 16px; gap: 4px;
+    }
+    .greeting-info { flex: 1; }
+    .greeting-date {
+      font-size: 11px; letter-spacing: 1.5px; font-weight: 500;
+      color: var(--primary);
+    }
+    .greeting-name {
+      font-size: 24px; font-weight: 400; color: var(--on-surface);
+    }
+    .notif-wrap { position: relative; }
+    .avatar-home {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #82008C 0%, #40798C 100%);
+      border: 3.5px solid var(--success-container);
+      font-size: 14px; font-weight: 500; color: white;
+      cursor: pointer;
+    }
+
+    /* Notification panel */
+    .notif-panel {
+      display: none; position: absolute; top: 48px; right: 0; z-index: 100;
+      width: 280px; background: var(--surface-container-low);
+      border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      overflow: hidden;
+    }
+    .notif-panel.open { display: block; }
+    .notif-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 4px 4px 16px;
+    }
+    .notif-header .title-md { font-size: 16px; font-weight: 500; }
+    .notif-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px; border-top: 1px solid var(--outline-variant);
+    }
+    .notif-row.unread { background: rgba(64,121,140,.12); }
+    .notif-icon { color: var(--primary); font-size: 20px; padding-top: 2px; flex-shrink: 0; }
+    .notif-icon.read { color: var(--on-surface-variant); }
+    .notif-body { flex: 1; }
+    .notif-title { font-size: 13px; font-weight: 500; }
+    .notif-text { font-size: 12px; color: var(--on-surface); }
+    .notif-time { font-size: 11px; color: var(--on-surface-variant); }
+
+    /* Hero card */
+    .hero-card {
+      margin: 0 16px 16px;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, #5A3D7A 100%);
+      display: flex; gap: 14px; align-items: center;
+    }
+    .hero-3d-box {
+      width: 110px; min-height: 180px; flex-shrink: 0;
+      border-radius: var(--radius-md);
+      background: rgba(0,0,0,.30);
+      border: 1px solid rgba(89,255,204,.28);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; padding: 8px;
+    }
+    .hero-3d-label {
+      position: absolute; top: 8px; left: 8px;
+      font-size: 10px; letter-spacing: 2px; color: rgba(89,255,204,.85); font-weight: 500;
+    }
+    .hero-info { flex: 1; }
+    .hero-super {
+      font-size: 11px; letter-spacing: 2px; font-weight: 500; color: var(--mint);
+    }
+    .hero-title {
+      font-size: 20px; font-weight: 500; color: white;
+      margin: 4px 0 8px; line-height: 1.3;
+    }
+    .hero-progress { margin-bottom: 12px; }
+    .progress-row { display: flex; align-items: center; gap: 8px; }
+    .progress-pct { font-size: 11px; color: var(--mint); font-weight: 500; }
+
+    /* Plan section */
+    .section-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      padding: 4px 20px; margin-bottom: 0;
+    }
+    .section-header .title-md { color: var(--on-surface); }
+    .section-meta { font-size: 12px; color: var(--on-surface-variant); font-weight: 500; }
+
+    .plan-card { margin: 8px 16px 14px; }
+    .plan-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; cursor: pointer;
+    }
+    .plan-row:hover { background: rgba(0,0,0,.03); }
+    .plan-check {
+      width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--outline-variant);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      cursor: pointer;
+    }
+    .plan-check.checked { background: var(--success); border-color: var(--success); }
+    .plan-check.checked::after {
+      content: ''; width: 10px; height: 6px;
+      border-left: 2px solid white; border-bottom: 2px solid white;
+      transform: rotate(-45deg) translateY(-1px);
+    }
+    .plan-text { flex: 1; }
+    .plan-title { font-size: 16px; color: var(--on-surface); line-height: 1.3; }
+    .plan-title.done { color: var(--on-surface-variant); text-decoration: line-through; }
+    .plan-duration {
+      font-size: 11px; font-weight: 500; color: var(--on-surface-variant);
+      background: var(--surface-container);
+      border-radius: var(--radius-full); padding: 3px 10px;
+      flex-shrink: 0; white-space: nowrap;
+    }
+
+    /* Agent suggestion */
+    .agent-suggestion {
+      margin: 4px 16px; padding: 14px;
+      background: var(--tertiary-container);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .suggestion-icon-box {
+      width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;
+      background: var(--tertiary); display: flex; align-items: center; justify-content: center;
+    }
+    .suggestion-text { flex: 1; }
+    .suggestion-super {
+      font-size: 11px; letter-spacing: 1.2px; font-weight: 500;
+      color: rgba(56,0,37,.75);
+    }
+    .suggestion-body { font-size: 14px; color: var(--on-tertiary-container); }
+    .btn-vamos {
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; gap: 2px;
+      color: var(--on-tertiary-container); font-size: 14px; font-weight: 500;
+      padding: 4px 8px; border-radius: var(--radius-sm); white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn-vamos:hover { background: rgba(0,0,0,.08); }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Scrollable content -->
+  <div class="scroll-content">
+
+    <!-- Greeting bar -->
+    <div class="greeting-bar">
+      <div class="greeting-info">
+        <div class="greeting-date">SÁBADO · 17 MAY</div>
+        <div class="greeting-name">buen día, Ana 👋</div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="notif-wrap">
+        <button class="icon-btn" style="position:relative" onclick="toggleNotif()" id="notif-btn">
+          <span class="material-symbols-rounded">notifications</span>
+          <div class="badge"></div>
+        </button>
+        <div class="notif-panel" id="notif-panel">
+          <div class="notif-header">
+            <span class="title-md">Notificaciones</span>
+            <button class="btn btn-text" style="font-size:12px">Marcar todo</button>
+          </div>
+          <div class="notif-row unread">
+            <span class="material-symbols-rounded notif-icon">auto_awesome</span>
+            <div class="notif-body">
+              <div class="notif-title">Agente</div>
+              <div class="notif-text">Tienes una nueva sugerencia de repaso</div>
+              <div class="notif-time">hace 5 min</div>
+            </div>
+          </div>
+          <div class="notif-row unread">
+            <span class="material-symbols-rounded notif-icon">emoji_events</span>
+            <div class="notif-body">
+              <div class="notif-title">Logro</div>
+              <div class="notif-text">Completaste 3 días consecutivos 🔥</div>
+              <div class="notif-time">hace 1 h</div>
+            </div>
+          </div>
+          <div class="notif-row">
+            <span class="material-symbols-rounded notif-icon read">quiz</span>
+            <div class="notif-body">
+              <div class="notif-title">Recordatorio</div>
+              <div class="notif-text">Quiz de cámaras del corazón pendiente</div>
+              <div class="notif-time">ayer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avatar → Settings -->
+      <div class="avatar avatar-home" onclick="goTo('Settings_C.html')" style="margin: 0 12px 0 4px; cursor:pointer">A</div>
+    </div>
+
+    <!-- Hero card -->
+    <div class="hero-card">
+      <div class="hero-3d-box">
+        <div class="hero-3d-label">3D</div>
+        <span class="material-symbols-rounded" style="color:var(--mint);font-size:40px">favorite</span>
+      </div>
+      <div class="hero-info">
+        <div class="hero-super">CONTINÚA CON</div>
+        <div class="hero-title">Sistema Circulatorio</div>
+        <div class="hero-progress">
+          <div class="progress-row">
+            <div class="progress-track" style="flex:1">
+              <div class="progress-bar" style="width:42%"></div>
+            </div>
+            <span class="progress-pct">42%</span>
+          </div>
+        </div>
+        <!-- Abrir → Quiz.html -->
+        <button class="btn btn-mint" style="height:36px;padding:0 16px;border-radius:999px;font-size:13px" onclick="goTo('Quiz.html')">
+          Abrir
+          <span class="material-symbols-rounded" style="font-size:16px">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Plan section -->
+    <div class="section-header">
+      <span class="title-md">Tu plan de hoy</span>
+      <span class="section-meta">1 de 3 · 34 min</span>
+    </div>
+
+    <div class="card plan-card">
+      <!-- Quiz task → Quiz.html (clic en fila navega; clic en checkbox solo marca) -->
+      <div class="plan-row" id="item-quiz" style="cursor:pointer">
+        <div class="plan-check" id="check-quiz"></div>
+        <div class="plan-text">
+          <div class="plan-title">Quiz · 4 preguntas</div>
+          <div style="margin-top:3px"><span class="chip chip-primary" style="font-size:10px;letter-spacing:.8px">REPASO</span></div>
+        </div>
+        <div class="plan-duration">12 min</div>
+      </div>
+      <div class="divider divider-indent"></div>
+      <div class="plan-row">
+        <div class="plan-check checked" id="check-lectura"></div>
+        <div class="plan-text">
+          <div class="plan-title done">Leer: El latido del corazón</div>
+          <div style="margin-top:3px"><span class="chip chip-secondary" style="font-size:10px;letter-spacing:.8px">LECTURA</span></div>
+        </div>
+        <div class="plan-duration">10 min</div>
+      </div>
+      <div class="divider divider-indent"></div>
+      <div class="plan-row">
+        <div class="plan-check" id="check-diseñar"></div>
+        <div class="plan-text">
+          <div class="plan-title">Diseñar una válvula</div>
+          <div style="margin-top:3px"><span class="chip chip-primary" style="font-size:10px;letter-spacing:.8px">RETO CREATIVO</span></div>
+        </div>
+        <div class="plan-duration">12 min</div>
+      </div>
+    </div>
+
+    <!-- Agent suggestion -->
+    <div class="agent-suggestion">
+      <div class="suggestion-icon-box">
+        <span class="material-symbols-rounded" style="color:white;font-size:20px">auto_awesome</span>
+      </div>
+      <div class="suggestion-text">
+        <div class="suggestion-super">SUGERENCIA · AGENTE</div>
+        <div class="suggestion-body">¿saltamos al reto creativo? va bien con lo que aprendiste hoy</div>
+      </div>
+      <!-- vamos → Agent.html -->
+      <button class="btn-vamos" onclick="goTo('Agent.html')">
+        vamos
+        <span class="material-symbols-rounded" style="font-size:16px">arrow_forward</span>
+      </button>
+    </div>
+
+  </div><!-- /scroll-content -->
+
+  <!-- Bottom nav — activo: Hoy -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="return false;" aria-current="page">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">today</span>
+      </div>
+      <span class="nav-label">Hoy</span>
+    </button>
+    <button class="nav-item disabled" aria-disabled="true" onclick="return false;">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">view_in_ar</span>
+      </div>
+      <span class="nav-label">Atlas 3D</span>
+    </button>
+    <button class="nav-item" onclick="goTo('Agent.html')">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">forum</span>
+      </div>
+      <span class="nav-label">Agente</span>
+    </button>
+    <button class="nav-item" onclick="goTo('Settings_C.html')">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">person</span>
+      </div>
+      <span class="nav-label">Yo</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+  function goTo(page) { window.location.href = page; }
+
+  // Navegación: ítem Quiz → Quiz.html
+  // El clic en el checkbox solo marca; el clic en el resto de la fila navega.
+  document.getElementById('item-quiz').addEventListener('click', function(e) {
+    if (e.target.closest('#check-quiz')) return;
+    goTo('Quiz.html');
+  });
+
+  // Checkboxes — toggle visual sin navegación
+  ['check-quiz', 'check-lectura', 'check-diseñar'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      el.classList.toggle('checked');
+      const title = el.closest('.plan-row').querySelector('.plan-title');
+      if (title) title.classList.toggle('done', el.classList.contains('checked'));
+    });
+  });
+
+  // Notificaciones
+  function toggleNotif() {
+    document.getElementById('notif-panel').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    const panel = document.getElementById('notif-panel');
+    const btn   = document.getElementById('notif-btn');
+    if (!btn.contains(e.target) && !panel.contains(e.target)) {
+      panel.classList.remove('open');
+    }
+  });
+</script>
+</body>
+</html>

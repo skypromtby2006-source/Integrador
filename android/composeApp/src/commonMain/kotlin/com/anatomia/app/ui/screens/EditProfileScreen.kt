@@ -20,20 +20,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.anatomia.app.ui.theme.LocalSuccessColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(navController: NavHostController) {
+    val viewModel: EditProfileViewModel = viewModel()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showPhotoMenu by remember { mutableStateOf(false) }
-    var nombre       by remember { mutableStateOf("Ana") }
-    var apellido     by remember { mutableStateOf("Rivera") }
-    var displayName  by remember { mutableStateOf("Ana R.") }
-    var birthDate    by remember { mutableStateOf("14/03/2009") }
-    var email        by remember { mutableStateOf("ana.rivera@escuela.mx") }
-    var touchId      by remember { mutableStateOf(true) }
-    var classCode    by remember { mutableStateOf("BIO-3B-2026") }
+    var touchId       by remember { mutableStateOf(true) }
+
+    LaunchedEffect(state.result) {
+        if (state.result is EditProfileResult.Success) {
+            viewModel.resetResult()
+            navController.popBackStack()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -46,7 +51,7 @@ fun EditProfileScreen(navController: NavHostController) {
                     }
                 },
                 actions = {
-                    TextButton(onClick = { navController.popBackStack() }) {
+                    TextButton(onClick = { viewModel.save() }) {
                         Text("Guardar", style = MaterialTheme.typography.labelLarge)
                     }
                 },
@@ -66,14 +71,29 @@ fun EditProfileScreen(navController: NavHostController) {
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) { Text("Cancelar") }
-                Button(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.weight(2f).height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Guardar cambios", style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp))
+                Column(modifier = Modifier.weight(2f)) {
+                    if (state.result is EditProfileResult.Error) {
+                        Text(
+                            text     = (state.result as EditProfileResult.Error).message,
+                            color    = MaterialTheme.colorScheme.error,
+                            style    = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                    Button(
+                        onClick  = { viewModel.save() },
+                        enabled  = state.result !is EditProfileResult.Loading,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape    = RoundedCornerShape(16.dp),
+                    ) {
+                        if (state.result is EditProfileResult.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Guardar cambios", style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp))
+                        }
+                    }
                 }
             }
         },
@@ -88,20 +108,20 @@ fun EditProfileScreen(navController: NavHostController) {
             item { AvatarBlock(onEditClick = { showPhotoMenu = true }) }
             item {
                 DatosPersonalesSection(
-                    nombre = nombre, apellido = apellido,
-                    displayName = displayName, birthDate = birthDate,
-                    onNombreChange = { nombre = it }, onApellidoChange = { apellido = it },
-                    onDisplayNameChange = { displayName = it }, onBirthDateChange = { birthDate = it },
+                    nombre = state.firstName, apellido = state.lastName,
+                    displayName = state.displayName, birthDate = state.birthDate,
+                    onNombreChange = viewModel::onFirstNameChange, onApellidoChange = viewModel::onLastNameChange,
+                    onDisplayNameChange = viewModel::onDisplayNameChange, onBirthDateChange = viewModel::onBirthDateChange,
                 )
             }
             item {
                 CuentaSection(
-                    email = email, touchId = touchId,
-                    onEmailChange = { email = it }, onTouchIdChange = { touchId = it },
+                    email = state.email, touchId = touchId,
+                    onEmailChange = viewModel::onEmailChange, onTouchIdChange = { touchId = it },
                 )
             }
             item {
-                ClaseAsignadaSection(classCode = classCode, onCodeChange = { classCode = it })
+                ClaseAsignadaSection(classCode = state.classCode, onCodeChange = viewModel::onClassCodeChange)
             }
             item { AgentHintCard() }
             item { DangerZone() }

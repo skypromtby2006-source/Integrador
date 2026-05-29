@@ -5,6 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.anatomia.app.agent.AgentRepository
 import com.anatomia.app.agent.ContentBank
 import com.anatomia.app.agent.Question
+import com.anatomia.app.db.ProgressRepository
+import com.anatomia.app.db.QuestionRepository
+import com.anatomia.app.db.SessionRepository
+import com.anatomia.app.db.SyncRepository
+import com.anatomia.app.network.AnswerRecordDto
+import com.anatomia.app.network.ProgressService
+import com.anatomia.app.network.createHttpClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +48,7 @@ sealed class QuizUiState {
 class QuizViewModel : ViewModel() {
 
     private val repository = AgentRepository()
+    private val progressService = ProgressService(createHttpClient())
 
     private val _uiState = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
@@ -48,19 +56,29 @@ class QuizViewModel : ViewModel() {
     private var currentOrganId: String = "heart"
 
     fun loadQuiz(organId: String) {
-        if (_uiState.value !is QuizUiState.Loading) return
         currentOrganId = organId
         viewModelScope.launch {
-            try {
-                val questions = ContentBank.loadForOrgan(organId)
-                if (questions.isEmpty()) {
-                    _uiState.value = QuizUiState.Error("No hay preguntas para $organId")
-                    return@launch
-                }
-                _uiState.value = QuizUiState.Active(questions = questions)
-            } catch (e: Exception) {
-                _uiState.value = QuizUiState.Error(e.message ?: "Error desconocido")
+            _uiState.value = QuizUiState.Loading
+
+            // 1. Intenta sync del servidor (no bloquea si falla)
+            SyncRepository.syncQuestionsForOrgan(organId)
+
+            // 2. Carga desde SQLDelight
+            val fromDb = QuestionRepository.getByOrgan(organId)
+
+            // 3. Si SQLDelight tiene preguntas, úsalas; si no, usa ContentBank como fallback
+            val questions = if (fromDb.isNotEmpty()) {
+                fromDb
+            } else {
+                ContentBank.loadForOrgan(organId)
             }
+
+            if (questions.isEmpty()) {
+                _uiState.value = QuizUiState.Error("No hay preguntas disponibles para este órgano")
+                return@launch
+            }
+
+            _uiState.value = QuizUiState.Active(questions = questions.shuffled())
         }
     }
 
@@ -106,16 +124,36 @@ class QuizViewModel : ViewModel() {
     }
 
     private fun finishQuiz(questions: List<Question>, answers: Map<Int, Int?>) {
+        val studentId = SessionRepository.load()?.id ?: run {
+            println("[PROGRESS] No hay sesión activa — no se envía progreso")
+            return
+        }
+
+        val answerRecords = mutableListOf<AnswerRecordDto>()
+
         answers.forEach { (idx, selected) ->
             if (selected != null) {
-                val q = questions[idx]
+                val q          = questions[idx]
+                val wasCorrect = selected == q.correctIndex
+
                 repository.recordAnswer(
                     organId    = currentOrganId,
                     questionId = q.id,
-                    wasCorrect = selected == q.correctIndex,
+                    wasCorrect = wasCorrect,
                 )
+                ProgressRepository.recordAnswer(
+                    organId    = currentOrganId,
+                    questionId = q.id,
+                    wasCorrect = wasCorrect,
+                )
+
+                answerRecords.add(AnswerRecordDto(
+                    questionId = q.id,
+                    wasCorrect = wasCorrect
+                ))
             }
         }
+
         val score = answers.entries.count { (idx, selected) ->
             selected != null && selected == questions[idx].correctIndex
         }
@@ -125,5 +163,18 @@ class QuizViewModel : ViewModel() {
             score     = score,
             total     = questions.size,
         )
+
+        viewModelScope.launch {
+            val ok = progressService.submitProgress(
+                studentId = studentId,
+                organId   = currentOrganId,
+                answers   = answerRecords
+            )
+            if (ok) {
+                println("[PROGRESS] Progreso enviado al servidor correctamente")
+            } else {
+                println("[PROGRESS] Fallo en envío — guardado localmente")
+            }
+        }
     }
 }

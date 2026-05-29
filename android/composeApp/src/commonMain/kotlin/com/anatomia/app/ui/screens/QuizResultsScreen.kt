@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,10 @@ fun QuizResultsScreen(
     val state = uiState as? QuizUiState.Finished ?: run {
         LaunchedEffect(Unit) { navController.navigate(Screen.Home.route) }
         return
+    }
+
+    BackHandler {
+        navController.popBackStack(Screen.Home.route, inclusive = false)
     }
 
     val incorrectas = state.answers.entries.count { (idx, selected) ->

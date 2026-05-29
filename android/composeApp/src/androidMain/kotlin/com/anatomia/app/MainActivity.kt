@@ -9,12 +9,17 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.anatomia.app.agent.ProgressStore
+import com.anatomia.app.db.DatabaseDriverFactory
+import com.anatomia.app.db.DatabaseProvider
+import com.anatomia.app.network.SessionStore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        DatabaseProvider.init(DatabaseDriverFactory(this))
         ProgressStore.init(this)
+        SessionStore.init(this)
 
         // Ocultar status bar y barra de navegación — modo inmersivo
         val controller = WindowInsetsControllerCompat(window, window.decorView)

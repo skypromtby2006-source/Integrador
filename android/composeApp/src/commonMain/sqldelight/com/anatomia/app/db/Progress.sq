@@ -1,0 +1,28 @@
+CREATE TABLE progress (
+    organ_id    TEXT    NOT NULL,
+    question_id TEXT    NOT NULL,
+    was_correct INTEGER NOT NULL DEFAULT 0,
+    answered_at TEXT    NOT NULL,
+    PRIMARY KEY (organ_id, question_id)
+);
+
+upsertAnswer:
+INSERT OR REPLACE INTO progress
+(organ_id, question_id, was_correct, answered_at)
+VALUES (?, ?, ?, ?);
+
+getByOrgan:
+SELECT * FROM progress WHERE organ_id = ?;
+
+getAll:
+SELECT * FROM progress;
+
+clearByOrgan:
+DELETE FROM progress WHERE organ_id = ?;
+
+clearAll:
+DELETE FROM progress;
+
+countCorrectByOrgan:
+SELECT COUNT(*) FROM progress
+WHERE organ_id = ? AND was_correct = 1;

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Didactai — Resultados</title>
+  <link rel="stylesheet" href="m3-theme.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <style>
+    .screen { height: 100dvh; }
+    .scroll-content { padding-bottom: 0; }
+
+    /* Score hero */
+    .score-hero {
+      margin: 0 16px;
+      border-radius: var(--radius-lg);
+      padding: 24px 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, #5A3D7A 100%);
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+    }
+    .score-ring-wrap { position: relative; width: 120px; height: 120px; margin-bottom: 16px; }
+    .score-ring-wrap canvas { position: absolute; inset: 0; }
+    .score-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .score-pct { font-size: 32px; font-weight: 700; color: white; }
+    .score-label { font-size: 11px; color: var(--mint); font-weight: 500; }
+    .score-title { font-size: 20px; font-weight: 500; color: white; margin-bottom: 4px; }
+    .score-sub { font-size: 14px; color: rgba(255,255,255,.75); }
+
+    /* Stats row */
+    .stats-row {
+      display: flex; gap: 10px; margin: 14px 16px 0;
+    }
+    .stat-card {
+      flex: 1; border-radius: var(--radius-md); padding: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .stat-num { font-size: 24px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; font-weight: 500; text-align: center; }
+
+    /* Agent insight */
+    .insight-card {
+      margin: 14px 16px 0;
+      border-radius: var(--radius-md); padding: 14px;
+      background: var(--tertiary-container);
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .insight-icon {
+      width: 32px; height: 32px; border-radius: var(--radius-sm); flex-shrink: 0;
+      background: var(--tertiary); display: flex; align-items: center; justify-content: center;
+    }
+    .insight-body { flex: 1; }
+    .insight-super {
+      font-size: 11px; letter-spacing: 1.2px; font-weight: 500;
+      color: rgba(56,0,37,.75); margin-bottom: 4px;
+    }
+    .insight-text { font-size: 14px; color: var(--on-tertiary-container); line-height: 1.5; }
+
+    /* Review list */
+    .review-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      padding: 14px 24px 8px;
+    }
+    .review-item {
+      margin: 0 16px 8px;
+      border-radius: var(--radius-md); padding: 12px 14px;
+      background: var(--surface-container-low);
+      cursor: pointer;
+    }
+    .review-item-header { display: flex; align-items: center; gap: 8px; }
+    .review-num {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500;
+    }
+    .review-num.ok   { background: var(--success-container); color: var(--on-success-container); }
+    .review-num.bad  { background: var(--error-container);   color: var(--on-error-container); }
+    .review-num.skip { background: var(--surface-container-highest); color: var(--on-surface-variant); }
+    .review-q { flex: 1; font-size: 14px; color: var(--on-surface); }
+    .review-detail {
+      display: none; margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid var(--outline-variant);
+    }
+    .review-detail.open { display: block; }
+    .review-answer { font-size: 13px; margin-bottom: 4px; }
+    .review-yours { color: var(--on-surface-variant); }
+    .review-correct { color: var(--success); font-weight: 500; }
+    .review-wrong   { color: var(--error); }
+
+    /* Action dock */
+    .action-dock {
+      padding: 12px 16px 16px;
+      background: var(--background);
+      border-top: 1px solid var(--outline-variant);
+      display: flex; gap: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Top bar — back → Home_C.html (escape de emergencia) -->
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-back" onclick="goTo('Home_C.html')" aria-label="volver a inicio">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
+    <div class="bar-title" style="text-align:center">Resultados</div>
+    <div style="width:40px"></div>
+  </div>
+
+  <!-- Scrollable -->
+  <div class="scroll-content">
+
+    <!-- Score hero -->
+    <div class="score-hero">
+      <div class="score-ring-wrap">
+        <canvas id="ring-canvas" width="120" height="120"></canvas>
+        <div class="score-center">
+          <span class="score-pct">75%</span>
+          <span class="score-label">PUNTAJE</span>
+        </div>
+      </div>
+      <div class="score-title">¡Buen trabajo, Ana!</div>
+      <div class="score-sub">Completaste el quiz de circulatorio</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card" style="background:var(--success-container)">
+        <span class="stat-num" style="color:var(--success)">6</span>
+        <span class="stat-lbl" style="color:var(--on-success-container)">correctas</span>
+      </div>
+      <div class="stat-card" style="background:var(--error-container)">
+        <span class="stat-num" style="color:var(--error)">1</span>
+        <span class="stat-lbl" style="color:var(--on-error-container)">incorrectas</span>
+      </div>
+      <div class="stat-card" style="background:var(--surface-container)">
+        <span class="stat-num" style="color:var(--on-surface-variant)">1</span>
+        <span class="stat-lbl" style="color:var(--on-surface-variant)">saltadas</span>
+      </div>
+      <div class="stat-card" style="background:var(--primary-container)">
+        <span class="stat-num" style="color:var(--primary)">+120</span>
+        <span class="stat-lbl" style="color:var(--on-primary-container)">XP</span>
+      </div>
+    </div>
+
+    <!-- Agent insight -->
+    <div class="insight-card">
+      <div class="insight-icon">
+        <span class="material-symbols-rounded" style="color:white;font-size:18px">auto_awesome</span>
+      </div>
+      <div class="insight-body">
+        <div class="insight-super">INSIGHT · AGENTE</div>
+        <div class="insight-text">
+          Aciertas bien las cámaras del corazón. Mezclas arterias y venas — vamos a trabajar eso juntos.
+        </div>
+      </div>
+    </div>
+
+    <!-- Review list -->
+    <div class="review-header">
+      <span style="font-size:14px;font-weight:500">Revisión por pregunta</span>
+      <span style="font-size:12px;color:var(--on-surface-variant)">toca para expandir</span>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">1</div>
+        <div class="review-q">¿Cuántas cámaras tiene el corazón?</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: 4 ✓</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">2</div>
+        <div class="review-q">La sangre sale del corazón hacia el cuerpo por…</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: Aorta ✓</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">3</div>
+        <div class="review-q">¿Qué cámara bombea sangre oxigenada al cuerpo?</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: Ventrículo izquierdo ✓</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num bad">4</div>
+        <div class="review-q">¿Qué llevan las arterias pulmonares?</div>
+        <span class="material-symbols-rounded" style="color:var(--error);font-size:18px">cancel</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-wrong">Tu respuesta: Sangre oxigenada ✗</div>
+        <div class="review-answer review-correct">Correcta: Sangre con CO₂</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num skip">5</div>
+        <div class="review-q">Función principal de las válvulas cardíacas</div>
+        <span class="material-symbols-rounded" style="color:var(--on-surface-variant);font-size:18px">remove_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-yours">Saltada</div>
+        <div class="review-answer review-correct">Correcta: Evitar retroceso de sangre</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">6</div>
+        <div class="review-q">El pulso que sientes refleja…</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: Contracción del ventrículo ✓</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">7</div>
+        <div class="review-q">Las venas regresan la sangre a…</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: Aurícula derecha ✓</div>
+      </div>
+    </div>
+
+    <div class="review-item" onclick="toggleReview(this)">
+      <div class="review-item-header">
+        <div class="review-num ok">8</div>
+        <div class="review-q">¿Cuántos circuitos tiene la circulación?</div>
+        <span class="material-symbols-rounded" style="color:var(--success);font-size:18px">check_circle</span>
+      </div>
+      <div class="review-detail">
+        <div class="review-answer review-correct">Tu respuesta: 2 (mayor y menor) ✓</div>
+      </div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- Action dock -->
+  <div class="action-dock">
+    <!-- Repasar errores → Quiz.html -->
+    <button class="btn btn-outlined" id="btn-retry" style="flex:1;height:52px;border-radius:var(--radius-md)" onclick="goTo('Quiz.html')">
+      Repasar errores
+    </button>
+    <!-- Continuar → Agent.html (el agente evalúa los patrones de respuesta) -->
+    <button class="btn btn-filled" id="btn-continue" style="flex:1;height:52px;border-radius:var(--radius-md)" onclick="goTo('Agent.html')">
+      Continuar
+      <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  function goTo(page) { window.location.href = page; }
+
+  function toggleReview(el) {
+    const detail = el.querySelector('.review-detail');
+    detail.classList.toggle('open');
+  }
+
+  // Draw score ring
+  (function() {
+    const canvas = document.getElementById('ring-canvas');
+    const ctx = canvas.getContext('2d');
+    const cx = 60, cy = 60, r = 50, lw = 10;
+    const pct = 0.75;
+
+    ctx.clearRect(0, 0, 120, 120);
+
+    // Track
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.lineWidth = lw;
+    ctx.stroke();
+
+    // Fill
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+    ctx.strokeStyle = '#59FFCC';
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  })();
+</script>
+</body>
+</html>

@@ -30,12 +30,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.anatomia.app.navigation.Screen
 import com.anatomia.app.ui.theme.*
 
 @Composable
 fun LoginScreen(navController: NavHostController) {
+    val viewModel: LoginViewModel = viewModel()
+    val loginState by viewModel.state.collectAsStateWithLifecycle()
+
+    // Cuando el login es exitoso, navega a Home
+    LaunchedEffect(loginState) {
+        if (loginState is LoginState.Success) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+            viewModel.resetState()
+        }
+    }
+
     var email by remember { mutableStateOf("ana@escuela.mx") }
     var password by remember { mutableStateOf("anatomia2026") }
     var showPassword by remember { mutableStateOf(false) }
@@ -185,19 +200,34 @@ fun LoginScreen(navController: NavHostController) {
 
             Spacer(Modifier.height(4.dp))
 
+            // Error message display
+            if (loginState is LoginState.Error) {
+                Text(
+                    text = (loginState as LoginState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             // Entrar button
             Button(
-                onClick = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
-                },
+                onClick = { viewModel.login(email, password) },
+                enabled = loginState !is LoginState.Loading,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(28.dp),
             ) {
-                Text("Entrar", style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp))
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                if (loginState is LoginState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Entrar", style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp))
+                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
             }
 
             // Divider "o continúa con"

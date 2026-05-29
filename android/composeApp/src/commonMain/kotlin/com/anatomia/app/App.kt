@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.anatomia.app.navigation.Screen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.anatomia.app.ui.screen.bodymodel.BodyModelScreen
 import com.anatomia.app.ui.screens.*
 import com.anatomia.app.ui.theme.AppTheme
 import com.anatomia.app.ui.theme.DidactaiTheme
@@ -41,6 +42,13 @@ fun App(modifier: Modifier = Modifier) {
             }
             composable(Screen.Home.route) {
                 HomeScreen(navController)
+            }
+            composable(Screen.BodyModel.route) {
+                BodyModelScreen(
+                    onNavigateToAgent = { navController.navigate(Screen.Agent.route) },
+                    onNavigateToQuiz  = { organId -> navController.navigate(Screen.Quiz.createRoute(organId)) },
+                    onNavigateBack    = { navController.popBackStack() }
+                )
             }
             composable(Screen.Agent.route) {
                 DidactaiAgentScreen(navController)

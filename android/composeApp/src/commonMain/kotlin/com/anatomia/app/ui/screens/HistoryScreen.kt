@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.anatomia.app.ui.theme.LocalSuccessColors
 
@@ -50,33 +52,6 @@ data class HistoryGroup(
     val entries: List<HistoryEntry>,
 )
 
-private val historyGroups = listOf(
-    HistoryGroup("Hoy · jue 14 may", 3, listOf(
-        HistoryEntry("h1", EntryType.QUIZ, "Quiz · Cámaras del corazón",
-            "Circulatorio", "5:32", "17:42", xp = 120, score = "6/8", scoreTier = ScoreTier.GOOD,
-            summary = "Insight · aciertas en cámaras, mezclas arterias / venas."),
-        HistoryEntry("h2", EntryType.AGENT, "Conversación · ¿Por qué late el corazón?",
-            "Circulatorio", "12 turnos", "16:18",
-            summary = "Resumen: comparaste el corazón con una bomba de doble cámara."),
-        HistoryEntry("h3", EntryType.LESSON, "Lección · El viaje de la sangre",
-            "Circulatorio", "5 min · completa", "15:47"),
-    )),
-    HistoryGroup("Ayer · mié 13 may", 2, listOf(
-        HistoryEntry("h4", EntryType.AGENT, "Reflexión · ¿Cómo te sientes hoy?",
-            "Auto-regulación", "🤓 enfocada", "18:05"),
-        HistoryEntry("h5", EntryType.QUIZ, "Quiz · Flujo arterias / venas",
-            "Circulatorio", "6:11", "17:30", xp = 60, score = "5/8", scoreTier = ScoreTier.MID,
-            summary = "A mejorar · 3 errores en dirección de flujo."),
-    )),
-    HistoryGroup("Lun 11 may", 2, listOf(
-        HistoryEntry("h6", EntryType.QUIZ, "Quiz · Funciones del corazón",
-            "Circulatorio", "3:48 · perfecto", "18:22", xp = 160, score = "8/8", scoreTier = ScoreTier.GOOD,
-            summary = "¡Récord! Dominas las funciones básicas. Subiste de nivel."),
-        HistoryEntry("h7", EntryType.AGENT, "Plan semanal · Circulatorio",
-            "Meta", "4 pasos", "17:10",
-            summary = "Meta acordada: dominar el ciclo circulatorio en 7 días."),
-    )),
-)
 
 private fun matchesFilter(entry: HistoryEntry, filter: String, query: String): Boolean {
     val matchType = when (filter) {
@@ -95,7 +70,9 @@ private fun matchesFilter(entry: HistoryEntry, filter: String, query: String): B
 
 @Composable
 fun HistoryScreen(navController: NavHostController) {
-    var searchQuery by remember { mutableStateOf("") }
+    val viewModel: HistoryViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var searchQuery  by remember { mutableStateOf("") }
     var activeFilter by remember { mutableStateOf("todo") }
 
     Scaffold(
@@ -112,20 +89,43 @@ fun HistoryScreen(navController: NavHostController) {
             item { StatsStrip() }
             item { SearchRow(query = searchQuery, onQueryChange = { searchQuery = it }) }
             item { FilterChipsRow(active = activeFilter, onSelect = { activeFilter = it }) }
-            historyGroups.forEach { group ->
-                val filtered = group.entries.filter { matchesFilter(it, activeFilter, searchQuery) }
-                if (filtered.isNotEmpty()) {
-                    item { DateGroupHeader(label = group.label, count = group.count) }
+            when (val s = uiState) {
+                is HistoryUiState.Loading -> {
                     item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        ) {
-                            Column {
-                                filtered.forEachIndexed { index, entry ->
-                                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                    HistoryEntryRow(entry)
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                is HistoryUiState.Empty -> {
+                    item {
+                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                "Aún no hay sesiones registradas.\nCompleta tu primer quiz para ver el historial.",
+                                style     = MaterialTheme.typography.bodyMedium,
+                                color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+                is HistoryUiState.Ready -> {
+                    val visibleGroups = s.groups.map { group ->
+                        group.copy(entries = group.entries.filter { matchesFilter(it, activeFilter, searchQuery) })
+                    }.filter { it.entries.isNotEmpty() }
+                    visibleGroups.forEach { group ->
+                        item { DateGroupHeader(label = group.label, count = group.count) }
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                shape    = RoundedCornerShape(16.dp),
+                                color    = MaterialTheme.colorScheme.surfaceContainerLow,
+                            ) {
+                                Column {
+                                    group.entries.forEachIndexed { index, entry ->
+                                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                        HistoryEntryRow(entry)
+                                    }
                                 }
                             }
                         }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import com.anatomia.app.db.SessionRepository
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.*
@@ -53,6 +54,10 @@ fun SettingsScreen(
 ) {
     val currentSize = textSizeLevels[fontSizeIndex]
     var notifications by remember { mutableStateOf(true) }
+    val student = remember { SessionRepository.load() }
+    val displayName = student?.name ?: "Estudiante"
+    val displayEmail = student?.email ?: ""
+    val displayInitial = displayName.firstOrNull()?.uppercase() ?: "E"
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -265,11 +270,11 @@ fun SettingsScreen(
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("A", style = MaterialTheme.typography.titleMedium, color = OnSecondary)
+                        Text(displayInitial, style = MaterialTheme.typography.titleMedium, color = OnSecondary)
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Ana García", style = MaterialTheme.typography.titleSmall, color = OnSurface)
-                        Text("ana@escuela.mx", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                        Text(displayName, style = MaterialTheme.typography.titleSmall, color = OnSurface)
+                        Text(displayEmail, style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                     }
                     Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = OnSurfaceVariant)
                 }
@@ -283,6 +288,7 @@ fun SettingsScreen(
                     Spacer(Modifier.weight(1f))
                     TextButton(
                         onClick = {
+                            SessionRepository.clear()
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(Screen.Home.route) { inclusive = true }
                             }

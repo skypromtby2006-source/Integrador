@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Quiz
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,22 +18,11 @@ import com.anatomia.app.ui.model.OrganFact
 import com.anatomia.app.ui.model.OrganUiModel
 import com.anatomia.app.ui.theme.AppColors
 
-/**
- * Contenido interno del bottom sheet: header del órgano + grilla de datos clínicos.
- *
- * Es un @Composable separado del sheet en sí por una razón importante:
- * nos permite hacer preview de este contenido en Android Studio sin necesitar
- * el scaffold completo. También facilita los tests de UI unitarios.
- *
- * @param organ El órgano actualmente seleccionado.
- * @param onLearnWithAgent Callback disparado cuando el estudiante toca "Aprender".
- *   Lleva el organId para que la pantalla del agente sepa el contexto.
- * @param onDismiss Callback para cerrar el sheet desde el botón de flecha.
- */
 @Composable
 fun OrganInfoSheetContent(
     organ: OrganUiModel,
     onLearnWithAgent: (organId: String) -> Unit,
+    onStartQuiz: (organId: String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -147,6 +137,26 @@ fun OrganInfoSheetContent(
                     tint = AppColors.TextMuted,
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { onStartQuiz(organ.id) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color(0xFF59FFCC),
+                contentColor   = androidx.compose.ui.graphics.Color(0xFF002417)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Quiz,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Quiz de este órgano", fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(20.dp))

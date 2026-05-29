@@ -1,0 +1,23 @@
+CREATE TABLE session (
+    id         TEXT    NOT NULL PRIMARY KEY,
+    name       TEXT    NOT NULL,
+    email      TEXT    NOT NULL,
+    class_id   INTEGER NOT NULL,
+    class_name TEXT    NOT NULL,
+    class_code TEXT    NOT NULL,
+    created_at TEXT    NOT NULL
+);
+
+upsertSession:
+INSERT OR REPLACE INTO session
+(id, name, email, class_id, class_name, class_code, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+loadSession:
+SELECT * FROM session LIMIT 1;
+
+clearSession:
+DELETE FROM session;
+
+hasSession:
+SELECT COUNT(*) FROM session;

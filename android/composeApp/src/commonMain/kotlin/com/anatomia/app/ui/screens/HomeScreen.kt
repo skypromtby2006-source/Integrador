@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavHostController
 import com.anatomia.app.data.PlanRepository
+import com.anatomia.app.db.SessionRepository
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -60,6 +61,9 @@ private val sampleNotifications = listOf(
 fun HomeScreen(navController: NavHostController) {
     val context = LocalContext.current
     val plan = remember { PlanRepository.loadFromContext(context) }
+    val firstName = remember {
+        SessionRepository.load()?.name?.split(" ")?.firstOrNull() ?: "estudiante"
+    }
 
     var completedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     val tasks = plan.tasks.map { it.copy(completed = it.id in completedIds) }
@@ -81,6 +85,7 @@ fun HomeScreen(navController: NavHostController) {
         ) {
             item {
                 GreetingBar(
+                    firstName = firstName,
                     showNotifications = showNotifications,
                     onNotificationClick = { showNotifications = true },
                     onDismissNotifications = { showNotifications = false }
@@ -134,6 +139,7 @@ fun HomeScreen(navController: NavHostController) {
 
 @Composable
 private fun GreetingBar(
+    firstName: String,
     showNotifications: Boolean,
     onNotificationClick: () -> Unit,
     onDismissNotifications: () -> Unit,
@@ -200,7 +206,7 @@ private fun GreetingBar(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "buen día, Ana ",
+                    "buen día, $firstName ",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -565,7 +571,13 @@ private fun HomeNavBar(navController: NavHostController) {
         )
         NavigationBarItem(
             selected = false,
-            onClick = {},
+            onClick = {
+                navController.navigate(Screen.BodyModel.route) {
+                    popUpTo(Screen.Home.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
             icon = { Icon(Icons.Rounded.ViewInAr, contentDescription = "Atlas 3D") },
             label = { Text("Atlas 3D") },
         )

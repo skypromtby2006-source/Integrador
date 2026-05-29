@@ -27,6 +27,7 @@ import com.anatomia.app.ui.theme.AppColors
 @Composable
 fun BodyModelScreen(
     onNavigateToAgent: (organId: String) -> Unit,
+    onNavigateToQuiz:  (organId: String) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BodyModelViewModel = viewModel { BodyModelViewModel() },
@@ -75,6 +76,7 @@ fun BodyModelScreen(
                     OrganInfoSheetContent(
                         organ = focusedState.organ,
                         onLearnWithAgent = { organId -> onNavigateToAgent(organId) },
+                        onStartQuiz      = { organId -> onNavigateToQuiz(organId) },
                         onDismiss = { viewModel.onSheetDismissed() },
                     )
                 }

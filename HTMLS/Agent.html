@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Didactai — Agente</title>
+  <link rel="stylesheet" href="m3-theme.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <style>
+    .screen { height: 100dvh; }
+
+    /* Hero */
+    .agent-hero {
+      margin: 8px 16px 0;
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      background: linear-gradient(135deg, var(--tertiary) 0%, #8A0070 100%);
+    }
+    .agent-hero-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .agent-avatar {
+      width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(89,255,204,.40);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .agent-hero-name { font-size: 16px; font-weight: 500; color: white; }
+    .agent-hero-sub {
+      font-size: 11px; letter-spacing: 1.2px; font-weight: 500;
+      color: rgba(255,255,255,.75);
+    }
+    .agent-hero-body { font-size: 14px; color: rgba(255,255,255,.88); line-height: 1.5; }
+
+    /* Section header */
+    .bdi-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 24px; margin-top: 14px; margin-bottom: 8px;
+    }
+    .bdi-icon-box {
+      width: 26px; height: 26px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .bdi-label-title { flex: 1; font-size: 14px; font-weight: 500; color: var(--on-surface); }
+    .bdi-tag { font-size: 11px; font-style: italic; color: var(--on-surface-variant); }
+
+    /* Belief row */
+    .belief-row {
+      display: flex; gap: 12px; padding: 16px;
+    }
+    .bullet { width: 6px; height: 6px; border-radius: 50%; margin-top: 9px; flex-shrink: 0; }
+    .belief-body { flex: 1; }
+    .belief-head { display: flex; align-items: center; gap: 8px; }
+    .belief-title { flex: 1; font-size: 16px; color: var(--on-surface); }
+    .belief-hint { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+
+    /* Goal card */
+    .goal-card { padding: 16px; background: var(--primary-container); border-radius: 0; }
+    .goal-super {
+      font-size: 11px; letter-spacing: 1.2px; font-weight: 500;
+      color: rgba(0,31,42,.7);
+    }
+    .goal-title { font-size: 16px; font-weight: 500; color: var(--on-primary-container); margin: 4px 0 10px; }
+    .goal-pills { display: flex; gap: 8px; margin-bottom: 12px; }
+    .goal-pill {
+      display: flex; align-items: center; gap: 4px;
+      border-radius: var(--radius-full); padding: 3px 9px;
+      background: rgba(0,31,42,.14);
+      font-size: 11px; color: var(--on-primary-container);
+    }
+    .goal-progress-track {
+      height: 8px; border-radius: var(--radius-full);
+      background: rgba(0,31,42,.14); overflow: hidden; margin-bottom: 8px;
+    }
+    .goal-progress-bar {
+      height: 100%; border-radius: var(--radius-full);
+      background: var(--on-primary-container); width: 65%;
+    }
+    .goal-footer {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .goal-pct { font-size: 12px; font-weight: 500; color: var(--on-primary-container); }
+    .goal-edit {
+      display: flex; align-items: center; gap: 4px;
+      background: none; border: none; cursor: pointer;
+      color: var(--on-primary-container); font-size: 12px; font-weight: 500;
+      font-family: inherit; padding: 4px 0;
+    }
+
+    /* Plan steps */
+    .step-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+    }
+    .step-circle {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 500;
+    }
+    .step-circle.done    { background: var(--success); color: var(--on-success); }
+    .step-circle.current { background: var(--secondary); color: var(--on-secondary); }
+    .step-circle.pending {
+      background: var(--surface-container-highest); color: var(--on-surface-variant);
+      border: 1px solid var(--outline-variant);
+    }
+    .step-body { flex: 1; }
+    .step-title { font-size: 16px; color: var(--on-surface); }
+    .step-title.done { color: var(--on-surface-variant); text-decoration: line-through; }
+    .step-reason { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--on-surface-variant); }
+    .step-time {
+      font-size: 12px; font-weight: 500; color: var(--on-surface-variant);
+      background: var(--surface-container);
+      border-radius: var(--radius-full); padding: 3px 10px;
+      flex-shrink: 0; white-space: nowrap;
+    }
+
+    /* Reflection */
+    .reflection-card { padding: 16px; background: var(--success-container); border-radius: 0; }
+    .ref-title { font-size: 16px; font-weight: 500; color: var(--on-success-container); }
+    .ref-sub { font-size: 12px; color: rgba(0,57,30,.8); margin: 4px 0 12px; }
+    .mood-row { display: flex; gap: 8px; }
+    .mood-btn {
+      flex: 1; aspect-ratio: 1; border-radius: 12px;
+      border: 1px solid rgba(0,57,30,.18);
+      background: rgba(255,255,255,.75);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .mood-btn.selected { border: 2px solid var(--success); }
+
+    /* Bottom action dock */
+    .action-dock {
+      padding: 14px 16px;
+      background: linear-gradient(to top, var(--surface) 80%, transparent);
+      position: sticky; bottom: 80px; z-index: 5;
+    }
+
+    /* Scroll */
+    .scroll-content { padding-bottom: 0; }
+    .sections-wrap { display: flex; flex-direction: column; gap: 0; padding-bottom: 8px; }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <button class="icon-btn" onclick="goTo('Home_C.html')">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
+    <div class="bar-title" style="display:flex;align-items:center;gap:8px">
+      <span>Agente</span>
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(183,240,214,.6);border-radius:999px;padding:2px 8px">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--success)"></div>
+        <span style="font-size:11px;letter-spacing:.4px;font-weight:500;color:var(--on-success-container)">activo</span>
+      </div>
+    </div>
+    <div class="bar-actions">
+      <button class="icon-btn"><span class="material-symbols-rounded">tune</span></button>
+    </div>
+  </div>
+
+  <!-- Scrollable -->
+  <div class="scroll-content">
+    <div class="sections-wrap">
+
+      <!-- Hero -->
+      <div class="agent-hero">
+        <div class="agent-hero-header">
+          <div class="agent-avatar">
+            <span class="material-symbols-rounded" style="color:var(--mint);font-size:22px">auto_awesome</span>
+          </div>
+          <div>
+            <div class="agent-hero-name">Buenos días, Ana</div>
+            <div class="agent-hero-sub">RESUMEN · SEMANA 6</div>
+          </div>
+        </div>
+        <div class="agent-hero-body">
+          Esta semana avanzaste un 40% en circulatorio. Vi que te concentras mejor por las tardes — vamos a aprovecharlo.
+        </div>
+      </div>
+
+      <!-- Beliefs -->
+      <div class="bdi-header" style="margin-top:14px">
+        <div class="bdi-icon-box" style="background:var(--primary-container)">
+          <span class="material-symbols-rounded" style="font-size:18px;color:var(--on-primary-container)">visibility</span>
+        </div>
+        <span class="bdi-label-title">Lo que noté en ti</span>
+        <span class="bdi-tag">creencias</span>
+      </div>
+      <div class="card" style="margin:0 16px">
+        <div class="belief-row">
+          <div class="bullet" style="background:var(--success)"></div>
+          <div class="belief-body">
+            <div class="belief-head">
+              <span class="belief-title">Recuerdas las funciones del corazón</span>
+              <span class="chip chip-success" style="font-size:10px">↑ fuerte</span>
+            </div>
+            <div class="belief-hint">acertaste 8 de 8 preguntas en tu último quiz</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="belief-row">
+          <div class="bullet" style="background:var(--primary)"></div>
+          <div class="belief-body">
+            <div class="belief-head">
+              <span class="belief-title">Aprendes mejor por las tardes</span>
+              <span class="chip chip-primary" style="font-size:10px">patrón</span>
+            </div>
+            <div class="belief-hint">tu retención mejora un 23% entre 5–7 PM</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="belief-row">
+          <div class="bullet" style="background:var(--tertiary)"></div>
+          <div class="belief-body">
+            <div class="belief-head">
+              <span class="belief-title">Te cuesta el flujo en arterias vs venas</span>
+              <span class="chip chip-tertiary" style="font-size:10px">a mejorar</span>
+            </div>
+            <div class="belief-hint">2 errores seguidos · te sugiero un mini-reto visual</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Goal -->
+      <div class="bdi-header">
+        <div class="bdi-icon-box" style="background:var(--secondary-container)">
+          <span class="material-symbols-rounded" style="font-size:18px;color:var(--on-secondary-container)">track_changes</span>
+        </div>
+        <span class="bdi-label-title">Tu meta</span>
+        <span class="bdi-tag">objetivo</span>
+      </div>
+      <div class="card" style="margin:0 16px;overflow:visible">
+        <div class="goal-card" style="border-radius:var(--radius-md)">
+          <div class="goal-super">ESTA SEMANA</div>
+          <div class="goal-title">Dominar el ciclo circulatorio completo</div>
+          <div class="goal-pills">
+            <div class="goal-pill">
+              <span class="material-symbols-rounded" style="font-size:14px">schedule</span> 2 días restantes
+            </div>
+            <div class="goal-pill">
+              <span class="material-symbols-rounded" style="font-size:14px">trending_up</span> buen ritmo
+            </div>
+          </div>
+          <div class="goal-progress-track"><div class="goal-progress-bar"></div></div>
+          <div class="goal-footer">
+            <span class="goal-pct">65% completado</span>
+            <button class="goal-edit">
+              <span class="material-symbols-rounded" style="font-size:14px">edit</span> Ajustar meta
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan -->
+      <div class="bdi-header">
+        <div class="bdi-icon-box" style="background:var(--tertiary-container)">
+          <span class="material-symbols-rounded" style="font-size:18px;color:var(--on-tertiary-container)">route</span>
+        </div>
+        <span class="bdi-label-title">Mi plan para ti</span>
+        <span class="bdi-tag">próximos pasos</span>
+      </div>
+      <div class="card" style="margin:0 16px">
+        <div class="step-row">
+          <div class="step-circle done">
+            <span class="material-symbols-rounded" style="font-size:16px">check</span>
+          </div>
+          <div class="step-body">
+            <div class="step-title done">Revisar latido del corazón</div>
+            <div class="step-reason">
+              <span class="material-symbols-rounded" style="color:var(--tertiary);font-size:14px">psychology</span>
+              base para entender el ciclo
+            </div>
+          </div>
+          <div class="step-time">3 min</div>
+        </div>
+        <div class="divider"></div>
+        <div class="step-row">
+          <div class="step-circle current">2</div>
+          <div class="step-body">
+            <div class="step-title">Reto: arterias vs venas</div>
+            <div class="step-reason">
+              <span class="material-symbols-rounded" style="color:var(--tertiary);font-size:14px">psychology</span>
+              te cuesta esta distinción — práctica visual
+            </div>
+          </div>
+          <div class="step-time">8 min</div>
+        </div>
+        <div class="divider"></div>
+        <div class="step-row">
+          <div class="step-circle pending">3</div>
+          <div class="step-body">
+            <div class="step-title">Diseñar una válvula</div>
+            <div class="step-reason">
+              <span class="material-symbols-rounded" style="color:var(--tertiary);font-size:14px">psychology</span>
+              creas conocimiento al diseñar
+            </div>
+          </div>
+          <div class="step-time">10 min</div>
+        </div>
+        <div class="divider"></div>
+        <div class="step-row">
+          <div class="step-circle pending">4</div>
+          <div class="step-body">
+            <div class="step-title">Quiz de cierre</div>
+            <div class="step-reason">
+              <span class="material-symbols-rounded" style="color:var(--tertiary);font-size:14px">psychology</span>
+              consolida lo aprendido hoy
+            </div>
+          </div>
+          <div class="step-time">4 min</div>
+        </div>
+      </div>
+
+      <!-- Reflection -->
+      <div class="bdi-header">
+        <div class="bdi-icon-box" style="background:var(--success-container)">
+          <span class="material-symbols-rounded" style="font-size:18px;color:var(--on-success-container)">favorite</span>
+        </div>
+        <span class="bdi-label-title">¿Cómo te sientes hoy?</span>
+        <span class="bdi-tag">reflexión</span>
+      </div>
+      <div class="card" style="margin:0 16px;overflow:visible">
+        <div class="reflection-card" style="border-radius:var(--radius-md)">
+          <div class="ref-title">Antes de seguir, cuéntame</div>
+          <div class="ref-sub">esto me ayuda a ajustar el ritmo y los retos</div>
+          <div class="mood-row">
+            <button class="mood-btn" onclick="selectMood(this)">😵‍💫</button>
+            <button class="mood-btn" onclick="selectMood(this)">😴</button>
+            <button class="mood-btn selected" onclick="selectMood(this)">🙂</button>
+            <button class="mood-btn" onclick="selectMood(this)">🤓</button>
+            <button class="mood-btn" onclick="selectMood(this)">🚀</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spacer for dock -->
+      <div style="height:16px"></div>
+    </div>
+  </div>
+
+  <!-- Action dock — Comenzar Quiz → Quiz.html -->
+  <div style="padding:14px 16px;background:linear-gradient(to top,var(--surface) 80%,transparent)">
+    <button class="btn btn-filled btn-full" style="height:52px;border-radius:var(--radius-md)" onclick="goTo('Quiz.html')">
+      Comenzar Quiz
+      <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
+    </button>
+  </div>
+
+  <!-- Bottom nav — activo: Agente -->
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="goTo('Home_C.html')">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">today</span>
+      </div>
+      <span class="nav-label">Hoy</span>
+    </button>
+    <button class="nav-item disabled" aria-disabled="true" onclick="return false;">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">view_in_ar</span>
+      </div>
+      <span class="nav-label">Atlas 3D</span>
+    </button>
+    <button class="nav-item active" onclick="return false;" aria-current="page">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">forum</span>
+      </div>
+      <span class="nav-label">Agente</span>
+    </button>
+    <button class="nav-item" onclick="goTo('Settings_C.html')">
+      <div class="nav-icon-wrap">
+        <span class="material-symbols-rounded">person</span>
+      </div>
+      <span class="nav-label">Yo</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+  function goTo(page) { window.location.href = page; }
+  function selectMood(el) {
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>
