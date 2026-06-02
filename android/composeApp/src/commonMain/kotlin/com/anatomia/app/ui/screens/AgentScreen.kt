@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -29,12 +30,19 @@ import com.anatomia.app.ui.theme.*
 @Composable
 fun DidactaiAgentScreen(
     navController: NavHostController,
+    organId      : String                 = "default",
     viewModel    : AgentDashboardViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadDashboard()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow
+        .collectAsStateWithLifecycle()
+
+    LaunchedEffect(lifecycleState, organId) {
+        if (lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED) {
+            viewModel.loadDashboard(organId)
+        }
     }
 
     if (state.isLoading) {

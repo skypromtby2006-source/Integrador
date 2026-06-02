@@ -3,6 +3,7 @@ package com.anatomia.app.agent
 import android.content.Context
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 
 private const val FILE = "quiz_progress.json"
 
@@ -14,16 +15,22 @@ actual object ProgressStore {
         ctx = context as Context
     }
 
-    actual fun loadAll(): Map<String, Map<String, Boolean>> = try {
-        val text = ctx!!.openFileInput(FILE).bufferedReader().use { it.readText() }
-        Json.decodeFromString(text)
-    } catch (_: Exception) {
-        emptyMap()
-    }
-
-    actual fun save(data: Map<String, Map<String, Boolean>>) {
-        ctx!!.openFileOutput(FILE, Context.MODE_PRIVATE).bufferedWriter().use {
-            it.write(Json.encodeToString(data))
+    actual fun loadAll(): Map<String, Map<String, AnswerRecord>> {
+        return try {
+            val file = File(ctx!!.filesDir, FILE)
+            if (!file.exists()) return emptyMap()
+            val text = file.readText()
+            if (text.isBlank()) return emptyMap()
+            Json.decodeFromString(text)
+        } catch (e: Exception) {
+            // Migración silenciosa: formato viejo incompatible → borrar y empezar limpio
+            try { File(ctx!!.filesDir, FILE).delete() } catch (_: Exception) {}
+            emptyMap()
         }
     }
+
+    actual fun save(data: Map<String, Map<String, AnswerRecord>>) {
+        File(ctx!!.filesDir, FILE).writeText(Json.encodeToString(data))
+    }
+
 }

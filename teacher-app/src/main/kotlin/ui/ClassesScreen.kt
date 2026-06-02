@@ -95,7 +95,7 @@ fun ClassesScreen(docenteId: String) {
                 CircularProgressIndicator(color = DColors.Primary)
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(classes, key = { it.claseId }) { cls ->
                     val isExpanded   = cls.claseId in expanded
                     val clsProgress  = progressMap[cls.claseId]

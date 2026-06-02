@@ -77,77 +77,79 @@ fun SessionProgressScreen(docenteId: String) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = DColors.Primary)
             }
-            return@Column
-        }
-
-        loadError?.let { msg ->
-            Surface(shape = RoundedCornerShape(10.dp), color = DColors.ErrorContainer,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Rounded.Warning, null, tint = DColors.Error,
-                        modifier = Modifier.size(18.dp))
-                    Text(msg, fontSize = 13.sp, color = DColors.OnErrorContainer,
-                        modifier = Modifier.weight(1f))
+        } else {
+            if (loadError != null) {
+                val msg = loadError!!
+                Surface(shape = RoundedCornerShape(10.dp), color = DColors.ErrorContainer,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.Warning, null, tint = DColors.Error,
+                            modifier = Modifier.size(18.dp))
+                        Text(msg, fontSize = 13.sp, color = DColors.OnErrorContainer,
+                            modifier = Modifier.weight(1f))
+                    }
                 }
             }
-        }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()) {
-            Text("Clase:", fontSize = 13.sp, color = DColors.OnSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterVertically))
-            clases.forEach { cls ->
-                Surface(
-                    shape    = RoundedCornerShape(999.dp),
-                    color    = if (selectedCls?.claseId == cls.claseId)
-                                   DColors.Primary else DColors.SurfaceContainer,
-                    modifier = Modifier.clickable { selectedCls = cls }
-                ) {
-                    Text("${cls.nombre} · ${cls.grado}",
-                        fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                        color = if (selectedCls?.claseId == cls.claseId)
-                                    DColors.OnPrimary else DColors.OnSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()) {
+                Text("Clase:", fontSize = 13.sp, color = DColors.OnSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterVertically))
+                clases.forEach { cls ->
+                    key(cls.claseId) {
+                        Surface(
+                            shape    = RoundedCornerShape(999.dp),
+                            color    = if (selectedCls?.claseId == cls.claseId)
+                                           DColors.Primary else DColors.SurfaceContainer,
+                            modifier = Modifier.clickable { selectedCls = cls }
+                        ) {
+                            Text("${cls.nombre} · ${cls.grado}",
+                                fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                                color = if (selectedCls?.claseId == cls.claseId)
+                                            DColors.OnPrimary else DColors.OnSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                        }
+                    }
                 }
             }
-        }
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-        // ── Contenido ─────────────────────────────────────────────────────────
-        when {
-            selectedCls == null -> {
-                EmptyState("📊", "Selecciona una clase",
-                    "Elige una clase para ver el progreso por sesión de sus alumnos")
-            }
-            loadingData -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DColors.Primary)
+            // ── Contenido ─────────────────────────────────────────────────────────
+            when {
+                selectedCls == null -> {
+                    EmptyState("📊", "Selecciona una clase",
+                        "Elige una clase para ver el progreso por sesión de sus alumnos")
                 }
-            }
-            resumen.isEmpty() -> {
-                EmptyState("📭", "Sin sesiones registradas",
-                    "Los alumnos de esta clase aún no han completado quizzes desde la app")
-            }
-            else -> {
-                val totalSesiones = resumen.sumOf { it.sesiones.size }
-                Text("${resumen.size} alumnos · $totalSesiones sesiones registradas",
-                    fontSize = 12.sp, color = DColors.OnSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 10.dp))
+                loadingData -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = DColors.Primary)
+                    }
+                }
+                resumen.isEmpty() -> {
+                    EmptyState("📭", "Sin sesiones registradas",
+                        "Los alumnos de esta clase aún no han completado quizzes desde la app")
+                }
+                else -> {
+                    val totalSesiones = resumen.sumOf { it.sesiones.size }
+                    Text("${resumen.size} alumnos · $totalSesiones sesiones registradas",
+                        fontSize = 12.sp, color = DColors.OnSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 10.dp))
 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(resumen, key = { it.usuarioId }) { est ->
-                        StudentSessionCard(
-                            est      = est,
-                            expanded = est.usuarioId in expanded,
-                            onToggle = {
-                                expanded = if (est.usuarioId in expanded)
-                                    expanded - est.usuarioId
-                                else
-                                    expanded + est.usuarioId
-                            }
-                        )
+                    LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(resumen, key = { it.usuarioId }) { est ->
+                            StudentSessionCard(
+                                est      = est,
+                                expanded = est.usuarioId in expanded,
+                                onToggle = {
+                                    expanded = if (est.usuarioId in expanded)
+                                        expanded - est.usuarioId
+                                    else
+                                        expanded + est.usuarioId
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -229,32 +231,34 @@ private fun StudentSessionCard(
                     }
 
                     est.sesiones.forEachIndexed { idx, sesion ->
-                        val pct = sesion.puntajeTotal.toInt()
-                        val pctColor = when {
-                            pct >= 70 -> DColors.Success
-                            pct >= 40 -> DColors.Primary
-                            else      -> DColors.Error
+                        key(sesion.sesionId) {
+                            val pct = sesion.puntajeTotal.toInt()
+                            val pctColor = when {
+                                pct >= 70 -> DColors.Success
+                                pct >= 40 -> DColors.Primary
+                                else      -> DColors.Error
+                            }
+                            Row(
+                                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(sesion.realizadoEn.take(10),
+                                    fontSize = 12.sp, color = DColors.OnSurfaceVariant,
+                                    modifier = Modifier.weight(2f))
+                                Text(organLabel(sesion.organId),
+                                    fontSize = 12.sp, color = DColors.OnSurface,
+                                    modifier = Modifier.weight(2f))
+                                Text("✓${sesion.correctas}  ✗${sesion.incorrectas}",
+                                    fontSize = 12.sp, color = DColors.OnSurfaceVariant,
+                                    modifier = Modifier.weight(1.5f))
+                                Text("$pct%", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                                    color = pctColor, modifier = Modifier.width(40.dp))
+                            }
+                            if (idx < est.sesiones.lastIndex)
+                                HorizontalDivider(color = DColors.OutlineVariant,
+                                    modifier = Modifier.padding(start = 14.dp))
                         }
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(sesion.realizadoEn.take(10),
-                                fontSize = 12.sp, color = DColors.OnSurfaceVariant,
-                                modifier = Modifier.weight(2f))
-                            Text(organLabel(sesion.organId),
-                                fontSize = 12.sp, color = DColors.OnSurface,
-                                modifier = Modifier.weight(2f))
-                            Text("✓${sesion.correctas}  ✗${sesion.incorrectas}",
-                                fontSize = 12.sp, color = DColors.OnSurfaceVariant,
-                                modifier = Modifier.weight(1.5f))
-                            Text("$pct%", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                                color = pctColor, modifier = Modifier.width(40.dp))
-                        }
-                        if (idx < est.sesiones.lastIndex)
-                            HorizontalDivider(color = DColors.OutlineVariant,
-                                modifier = Modifier.padding(start = 14.dp))
                     }
                 }
             }

@@ -549,7 +549,7 @@ private fun AgentSuggestionCard(navController: NavHostController) {
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
-            TextButton(onClick = { navController.navigate(Screen.Agent.route) }) {
+            TextButton(onClick = { navController.navigate(Screen.Agent.createRoute("default")) }) {
                 Text("vamos", color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Icon(Icons.Rounded.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(16.dp))
             }
@@ -584,7 +584,7 @@ private fun HomeNavBar(navController: NavHostController) {
         NavigationBarItem(
             selected = false,
             onClick = {
-                navController.navigate(Screen.Agent.route) {
+                navController.navigate(Screen.Agent.createRoute("default")) {
                     popUpTo(Screen.Home.route) { saveState = true }
                     launchSingleTop = true
                     restoreState = true

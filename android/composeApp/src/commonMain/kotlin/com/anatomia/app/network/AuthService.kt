@@ -14,6 +14,7 @@ class AuthService(private val client: HttpClient) {
         return try {
             val response: ApiResponse = client.post("$BASE_URL/auth/estudiante") {
                 contentType(ContentType.Application.Json)
+                header(NGROK_HEADER, "true")
                 setBody(LoginRequest(email = email, password = password))
             }.body()
 

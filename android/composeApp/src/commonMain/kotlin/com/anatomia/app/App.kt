@@ -45,13 +45,22 @@ fun App(modifier: Modifier = Modifier) {
             }
             composable(Screen.BodyModel.route) {
                 BodyModelScreen(
-                    onNavigateToAgent = { navController.navigate(Screen.Agent.route) },
+                    onNavigateToAgent = { organId -> navController.navigate(Screen.Agent.createRoute(organId)) },
                     onNavigateToQuiz  = { organId -> navController.navigate(Screen.Quiz.createRoute(organId)) },
                     onNavigateBack    = { navController.popBackStack() }
                 )
             }
-            composable(Screen.Agent.route) {
-                DidactaiAgentScreen(navController)
+            composable(
+                route     = Screen.Agent.route,
+                arguments = listOf(
+                    navArgument(Screen.Agent.ARG_ORGAN_ID) {
+                        type         = NavType.StringType
+                        defaultValue = "default"
+                    }
+                )
+            ) { backStackEntry ->
+                val organId = backStackEntry.arguments?.getString(Screen.Agent.ARG_ORGAN_ID) ?: "default"
+                DidactaiAgentScreen(navController = navController, organId = organId)
             }
             composable(
                 route     = Screen.Quiz.route,

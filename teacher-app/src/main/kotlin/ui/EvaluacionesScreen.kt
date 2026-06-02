@@ -189,7 +189,7 @@ fun EvaluacionesScreen(docenteId: String) {
         } else if (visible.isEmpty()) {
             EmptyState("📋", "Sin evaluaciones", "Crea la primera evaluación arriba")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visible, key = { it.evaluacionId }) { eval ->
                     EvaluacionCard(
                         eval       = eval,

@@ -18,6 +18,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import EmailService
+import EstudianteImportRow
+import ExcelImporter
 import db.ClaseRepository
 import db.EstudianteRepository
 import kotlinx.coroutines.Dispatchers
@@ -37,9 +40,12 @@ fun StudentsScreen(docenteId: String) {
     var showForm    by remember { mutableStateOf(false) }
     var errorMsg     by remember { mutableStateOf<String?>(null) }
     var loadError    by remember { mutableStateOf<String?>(null) }
-    var filterClass  by remember { mutableStateOf<String?>(null) }
-    var filterEstado by remember { mutableStateOf<String?>(null) }
-    var search       by remember { mutableStateOf("") }
+    var filterClass      by remember { mutableStateOf<String?>(null) }
+    var filterEstado     by remember { mutableStateOf<String?>(null) }
+    var search           by remember { mutableStateOf("") }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var importRows       by remember { mutableStateOf<List<EstudianteImportRow>>(emptyList()) }
+    var importProgress   by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -120,6 +126,27 @@ fun StudentsScreen(docenteId: String) {
                 Spacer(Modifier.width(4.dp))
                 Text("Eliminados", fontSize = 13.sp)
             }
+            OutlinedButton(
+                onClick = {
+                    val chooser = javax.swing.JFileChooser().apply {
+                        fileFilter = javax.swing.filechooser.FileNameExtensionFilter(
+                            "Excel (*.xlsx)", "xlsx"
+                        )
+                        dialogTitle = "Seleccionar archivo Excel de alumnos"
+                    }
+                    if (chooser.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        importRows       = ExcelImporter.parse(chooser.selectedFile)
+                        showImportDialog = true
+                    }
+                },
+                shape    = RoundedCornerShape(10.dp),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Icon(Icons.Rounded.Upload, null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Importar Excel", fontSize = 13.sp)
+            }
+
             Button(
                 onClick = { showForm = !showForm },
                 colors  = ButtonDefaults.buttonColors(containerColor = DColors.Primary),
@@ -131,6 +158,96 @@ fun StudentsScreen(docenteId: String) {
                 Spacer(Modifier.width(6.dp))
                 Text(if (showForm) "Cancelar" else "Nuevo alumno", fontSize = 14.sp)
             }
+        }
+
+        if (showImportDialog && importRows.isNotEmpty()) {
+            AlertDialog(
+                onDismissRequest = { showImportDialog = false },
+                title = {
+                    Text("Importar ${importRows.size} alumnos",
+                        fontWeight = FontWeight.Medium)
+                },
+                text = {
+                    val valid   = importRows.filter { it.isValid }
+                    val invalid = importRows.filter { !it.isValid }
+
+                    Column(Modifier.heightIn(max = 400.dp)) {
+                        if (valid.isNotEmpty()) {
+                            Text("✅ ${valid.size} filas válidas listas para importar",
+                                fontSize = 13.sp, color = DColors.Success)
+                        }
+                        if (invalid.isNotEmpty()) {
+                            Text("❌ ${invalid.size} filas con errores (se omitirán):",
+                                fontSize = 13.sp, color = DColors.Error,
+                                modifier = Modifier.padding(top = 8.dp))
+                            LazyColumn(Modifier.heightIn(max = 200.dp)) {
+                                items(invalid) { row ->
+                                    Text("• Fila ${row.rowNumber}: ${row.errors.joinToString(", ")}",
+                                        fontSize = 11.sp, color = DColors.OnErrorContainer,
+                                        modifier = Modifier.padding(start = 8.dp, top = 2.dp))
+                                }
+                            }
+                        }
+                        importProgress?.let {
+                            Text(it, fontSize = 12.sp, color = DColors.Primary,
+                                modifier = Modifier.padding(top = 8.dp))
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val valid = importRows.filter { it.isValid }
+                                var ok = 0; var fail = 0
+                                valid.forEach { row ->
+                                    try {
+                                        val clase = classes.find {
+                                            it.nombre.equals(row.claseNombre, ignoreCase = true)
+                                        }
+                                        if (clase == null) { fail++; return@forEach }
+
+                                        val req = CreateEstudianteRequest(
+                                            ciNumero        = row.ci,
+                                            ciComplemento   = row.complementoCi,
+                                            nombre          = "${row.nombre} ${row.segundoNombre}".trim(),
+                                            apellido        = row.apellidoCompleto,
+                                            password        = generateSecurePassword(),
+                                            claseId         = clase.claseId,
+                                            fechaNacimiento = row.fechaNacimiento,
+                                            correoPersonal  = row.correoPersonal,
+                                        )
+                                        withContext(Dispatchers.IO) {
+                                            val est = EstudianteRepository.create(req)
+                                            if (row.correoPersonal.isNotBlank()) {
+                                                EmailService.sendCredentials(
+                                                    toEmail     = row.correoPersonal,
+                                                    studentName = row.nombreCompleto,
+                                                    loginEmail  = est.email,
+                                                    password    = req.password,
+                                                )
+                                            }
+                                        }
+                                        ok++
+                                        importProgress = "Procesando... $ok de ${valid.size}"
+                                    } catch (_: Exception) { fail++ }
+                                }
+                                students         = withContext(Dispatchers.IO) { EstudianteRepository.getAll() }
+                                classes          = withContext(Dispatchers.IO) { ClaseRepository.getAll(docenteId) }
+                                showImportDialog = false
+                                importProgress   = null
+                            }
+                        },
+                        enabled = importRows.any { it.isValid },
+                        colors  = ButtonDefaults.buttonColors(containerColor = DColors.Primary)
+                    ) { Text("Importar ${importRows.count { it.isValid }} válidos") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showImportDialog = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
 
         Spacer(Modifier.height(10.dp))
@@ -186,11 +303,23 @@ fun StudentsScreen(docenteId: String) {
                 onCreated = { req ->
                     scope.launch {
                         try {
-                            withContext(Dispatchers.IO) { EstudianteRepository.create(req) }
-                            students  = withContext(Dispatchers.IO) { EstudianteRepository.getAll() }
-                            classes   = withContext(Dispatchers.IO) { ClaseRepository.getAll(docenteId) }
-                            showForm  = false
-                            errorMsg  = null
+                            val estudiante = withContext(Dispatchers.IO) { EstudianteRepository.create(req) }
+
+                            if (req.correoPersonal.isNotBlank()) {
+                                withContext(Dispatchers.IO) {
+                                    EmailService.sendCredentials(
+                                        toEmail     = req.correoPersonal,
+                                        studentName = "${req.nombre} ${req.apellido}",
+                                        loginEmail  = estudiante.email,
+                                        password    = req.password,
+                                    )
+                                }
+                            }
+
+                            students = withContext(Dispatchers.IO) { EstudianteRepository.getAll() }
+                            classes  = withContext(Dispatchers.IO) { ClaseRepository.getAll(docenteId) }
+                            showForm = false
+                            errorMsg = null
                         } catch (e: Exception) {
                             errorMsg = "Error: ${e.message}"
                         }
@@ -243,7 +372,7 @@ fun StudentsScreen(docenteId: String) {
                 if (filterClass == null) "Crea el primer alumno con el botón de arriba"
                 else "No hay alumnos en este curso todavía")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visible, key = { it.usuarioId }) { student ->
                     StudentCard(
                         student     = student,
@@ -314,15 +443,148 @@ private fun FilterChip(
 }
 
 @Composable
+private fun DatePickerField(
+    value         : String,
+    onValueChange : (String) -> Unit,
+    label         : String   = "Fecha de nacimiento",
+    modifier      : Modifier = Modifier,
+) {
+    val currentYear = java.time.LocalDate.now().year
+    val parts        = value.split("-")
+    var selectedYear  by remember(value) { mutableStateOf(parts.getOrNull(0)?.toIntOrNull()) }
+    var selectedMonth by remember(value) { mutableStateOf(parts.getOrNull(1)?.toIntOrNull()) }
+    var selectedDay   by remember(value) { mutableStateOf(parts.getOrNull(2)?.toIntOrNull()) }
+
+    LaunchedEffect(selectedYear, selectedMonth, selectedDay) {
+        val y = selectedYear; val m = selectedMonth; val d = selectedDay
+        if (y != null && m != null && d != null)
+            onValueChange("%04d-%02d-%02d".format(y, m, d))
+    }
+
+    val months = listOf(
+        "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+        "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    )
+    val daysInMonth = if (selectedYear != null && selectedMonth != null)
+        java.time.YearMonth.of(selectedYear!!, selectedMonth!!).lengthOfMonth()
+    else 31
+    val validYears = (currentYear - 5) downTo 1990
+
+    Column(modifier = modifier) {
+        Text(label, fontSize = 11.sp, color = DColors.OnSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DateDropdown(
+                label    = "Día",
+                value    = selectedDay?.toString() ?: "—",
+                options  = (1..daysInMonth).map { it.toString() },
+                onSelect = { selectedDay = it.toInt() },
+                modifier = Modifier.weight(1f)
+            )
+            DateDropdown(
+                label    = "Mes",
+                value    = selectedMonth?.let { months[it - 1] } ?: "—",
+                options  = months,
+                onSelect = { selectedMonth = months.indexOf(it) + 1 },
+                modifier = Modifier.weight(2f)
+            )
+            DateDropdown(
+                label    = "Año",
+                value    = selectedYear?.toString() ?: "—",
+                options  = validYears.map { it.toString() },
+                onSelect = { selectedYear = it.toInt() },
+                modifier = Modifier.weight(1.5f)
+            )
+        }
+        val isDateFuture = if (selectedYear != null && selectedMonth != null && selectedDay != null) {
+            try {
+                java.time.LocalDate.of(selectedYear!!, selectedMonth!!, selectedDay!!)
+                    .isAfter(java.time.LocalDate.now())
+            } catch (_: Exception) { false }
+        } else false
+        if (isDateFuture) {
+            Text("La fecha no puede ser futura", color = DColors.Error, fontSize = 11.sp,
+                modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+@Composable
+private fun DateDropdown(
+    label    : String,
+    value    : String,
+    options  : List<String>,
+    onSelect : (String) -> Unit,
+    modifier : Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text(label, fontSize = 10.sp, color = DColors.OnSurfaceVariant,
+            modifier = Modifier.padding(bottom = 2.dp))
+        Box {
+            Surface(
+                shape    = RoundedCornerShape(8.dp),
+                color    = DColors.SurfaceContainerHigh,
+                modifier = Modifier.fillMaxWidth().clickable { expanded = true }
+            ) {
+                Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(value, fontSize = 13.sp, color = DColors.OnSurface,
+                        modifier = Modifier.weight(1f))
+                    Icon(Icons.Rounded.ArrowDropDown, null,
+                        tint = DColors.OnSurfaceVariant, modifier = Modifier.size(16.dp))
+                }
+            }
+            DropdownMenu(
+                expanded         = expanded,
+                onDismissRequest = { expanded = false },
+                modifier         = Modifier.background(DColors.SurfaceContainerHigh)
+            ) {
+                Box(modifier = Modifier.height(200.dp).verticalScroll(rememberScrollState())) {
+                    Column {
+                        options.forEach { option ->
+                            DropdownMenuItem(
+                                text    = { Text(option, fontSize = 13.sp, color = DColors.OnSurface) },
+                                onClick = { onSelect(option); expanded = false }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun generateSecurePassword(): String {
+    val upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    val lower   = "abcdefghjkmnpqrstuvwxyz"
+    val digits  = "23456789"
+    val special = "@#\$%&*!?"
+    val all     = upper + lower + digits + special
+    val rng     = java.security.SecureRandom()
+    val pwd     = StringBuilder()
+    pwd.append(upper[rng.nextInt(upper.length)])
+    pwd.append(lower[rng.nextInt(lower.length)])
+    pwd.append(digits[rng.nextInt(digits.length)])
+    pwd.append(special[rng.nextInt(special.length)])
+    repeat(6) { pwd.append(all[rng.nextInt(all.length)]) }
+    return pwd.toList().shuffled(rng).joinToString("")
+}
+
+@Composable
 private fun CreateStudentForm(
     classes:  List<Clase>,
     errorMsg: String?,
     onCreated: (CreateEstudianteRequest) -> Unit
 ) {
-    var ci              by remember { mutableStateOf("") }
+    var ciNumero        by remember { mutableStateOf("") }
+    var ciComplemento   by remember { mutableStateOf("") }
     var nombre          by remember { mutableStateOf("") }
     var apellido        by remember { mutableStateOf("") }
-    var password        by remember { mutableStateOf("") }
+    var password        by remember { mutableStateOf(generateSecurePassword()) }
+    var showPassword    by remember { mutableStateOf(false) }
+    var correoPersonal  by remember { mutableStateOf("") }
     var fechaNacimiento by remember { mutableStateOf("") }
     var selectedClass   by remember { mutableStateOf<Clase?>(null) }
     var expanded        by remember { mutableStateOf(false) }
@@ -342,10 +604,41 @@ private fun CreateStudentForm(
             Text("Nuevo alumno", fontWeight = FontWeight.Medium, color = DColors.OnSurface)
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DTextField(value = ci, onValueChange = { ci = it },
-                    label = "Cédula de identidad (CI)", modifier = Modifier.weight(1f))
-                DTextField(value = password, onValueChange = { password = it },
-                    label = "Contraseña", isPassword = true, modifier = Modifier.weight(1f))
+                DTextField(
+                    value         = ciNumero,
+                    onValueChange = { if (it.length <= 8 && it.all { c -> c.isDigit() }) ciNumero = it },
+                    label         = "C.I. (6-8 dígitos)",
+                    modifier      = Modifier.weight(1.5f)
+                )
+                DTextField(
+                    value         = ciComplemento,
+                    onValueChange = { if (it.length <= 3) ciComplemento = it.uppercase() },
+                    label         = "Compl. (ej: 1A)",
+                    modifier      = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment     = Alignment.CenterVertically,
+                modifier              = Modifier.fillMaxWidth()
+            ) {
+                DTextField(
+                    value         = password,
+                    onValueChange = { password = it },
+                    label         = "Contraseña generada",
+                    isPassword    = !showPassword,
+                    modifier      = Modifier.weight(1f)
+                )
+                IconButton(onClick = { showPassword = !showPassword }) {
+                    Icon(
+                        if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                        contentDescription = null, tint = DColors.Primary
+                    )
+                }
+                IconButton(onClick = { password = generateSecurePassword() }) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Regenerar", tint = DColors.Primary)
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -355,9 +648,24 @@ private fun CreateStudentForm(
                     label = "Apellido", modifier = Modifier.weight(1f))
             }
 
-            DTextField(value = fechaNacimiento, onValueChange = { fechaNacimiento = it },
-                label = "Fecha de nacimiento (YYYY-MM-DD)",
-                modifier = Modifier.fillMaxWidth())
+            val correoError = correoPersonal.isNotBlank() &&
+                !Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$").matches(correoPersonal)
+
+            DTextField(
+                value         = correoPersonal,
+                onValueChange = { correoPersonal = it },
+                label         = "Correo personal del alumno",
+                modifier      = Modifier.fillMaxWidth()
+            )
+            if (correoError) {
+                Text("Correo inválido", color = DColors.Error, fontSize = 11.sp)
+            }
+
+            DatePickerField(
+                value         = fechaNacimiento,
+                onValueChange = { fechaNacimiento = it },
+                modifier      = Modifier.fillMaxWidth()
+            )
 
             Column {
                 Text("Curso", fontSize = 11.sp, color = DColors.OnSurfaceVariant,
@@ -412,19 +720,28 @@ private fun CreateStudentForm(
 
             errorMsg?.let { Text(it, color = DColors.Error, fontSize = 13.sp) }
 
+            val ciValida    = ciNumero.length in 6..8 && ciNumero.all { it.isDigit() }
+            val correoOk    = correoPersonal.isBlank() ||
+                Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$").matches(correoPersonal)
+            val fechaValida = fechaNacimiento.isNotBlank() && try {
+                !java.time.LocalDate.parse(fechaNacimiento).isAfter(java.time.LocalDate.now())
+            } catch (_: Exception) { false }
+
             Button(
                 onClick  = {
                     onCreated(CreateEstudianteRequest(
-                        ci              = ci.trim(),
+                        ciNumero        = ciNumero.trim(),
+                        ciComplemento   = ciComplemento.trim(),
                         nombre          = nombre.trim(),
                         apellido        = apellido.trim(),
                         password        = password,
                         claseId         = selectedClass!!.claseId,
-                        fechaNacimiento = fechaNacimiento.trim()
+                        fechaNacimiento = fechaNacimiento.trim(),
+                        correoPersonal  = correoPersonal.trim(),
                     ))
                 },
-                enabled  = ci.isNotBlank() && nombre.isNotBlank() && apellido.isNotBlank() &&
-                           password.isNotBlank() && selectedClass != null,
+                enabled  = ciValida && nombre.isNotBlank() && apellido.isNotBlank() &&
+                           password.length >= 10 && selectedClass != null && correoOk && fechaValida,
                 colors   = ButtonDefaults.buttonColors(containerColor = DColors.Primary),
                 shape    = RoundedCornerShape(8.dp),
                 modifier = Modifier.align(Alignment.End)
@@ -576,9 +893,11 @@ private fun EditEstudianteForm(
             label = "Nueva contraseña (vacío = no cambia)",
             isPassword = true, modifier = Modifier.fillMaxWidth())
 
-        DTextField(value = fechaNacimiento, onValueChange = { fechaNacimiento = it },
-            label = "Fecha de nacimiento (YYYY-MM-DD)",
-            modifier = Modifier.fillMaxWidth())
+        DatePickerField(
+            value         = fechaNacimiento,
+            onValueChange = { fechaNacimiento = it },
+            modifier      = Modifier.fillMaxWidth()
+        )
 
         Column {
             Text("Curso", fontSize = 11.sp, color = DColors.OnSurfaceVariant,

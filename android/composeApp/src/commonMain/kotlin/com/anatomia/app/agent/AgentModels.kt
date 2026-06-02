@@ -46,3 +46,10 @@ data class StudentState(
     val incorrectCount: Int = 0,
     val incorrectTopics: List<String> = emptyList(),
 )
+
+@kotlinx.serialization.Serializable
+data class AnswerRecord(
+    val wasCorrect : Boolean,
+    val topic      : String,
+    val answeredAt : Long,   // epoch millis
+)

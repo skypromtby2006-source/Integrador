@@ -140,6 +140,7 @@ class QuizViewModel : ViewModel() {
                     organId    = currentOrganId,
                     questionId = q.id,
                     wasCorrect = wasCorrect,
+                    topic      = q.topic,
                 )
                 ProgressRepository.recordAnswer(
                     organId    = currentOrganId,

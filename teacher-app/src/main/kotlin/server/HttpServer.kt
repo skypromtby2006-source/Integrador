@@ -116,9 +116,9 @@ object HttpServer {
 
                     post {
                         val req = call.receive<CreateEstudianteRequest>()
-                        if (req.ci.isBlank() || req.nombre.isBlank() || req.password.isBlank()) {
+                        if (req.ciNumero.isBlank() || req.nombre.isBlank() || req.password.isBlank()) {
                             call.respond(HttpStatusCode.BadRequest,
-                                ApiResponse<Estudiante>(ok = false, error = "ci, nombre y password requeridos"))
+                                ApiResponse<Estudiante>(ok = false, error = "ciNumero, nombre y password requeridos"))
                             return@post
                         }
                         val estudiante = EstudianteRepository.create(req)
@@ -177,6 +177,37 @@ object HttpServer {
                 // ── Contenido biológico ───────────────────────────────────
                 route("/contenido") {
                     get { call.respond(ApiResponse(ok = true, data = ContenidoRepository.getAll())) }
+                }
+
+                // ── Endpoint para app Android ─────────────────────────────
+                get("/questions/by-organ/{organId}") {
+                    val organId = call.parameters["organId"]
+                    if (organId.isNullOrBlank()) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ApiResponse(ok = false, data = "organId requerido")
+                        )
+                        return@get
+                    }
+
+                    val preguntas = PreguntaRepository.getByOrganId(organId)
+
+                    val dtos = preguntas.mapIndexed { index, p ->
+                        val correctIndex = p.opciones.indexOfFirst { it.esCorrecta }
+                            .takeIf { it >= 0 } ?: 0
+                        QuestionAndroidDto(
+                            id           = index + 1,
+                            topic        = p.tituloContenido.ifBlank { p.subtema.ifBlank { organId } },
+                            organId      = p.contenidoId,
+                            body         = p.enunciado,
+                            explanation  = p.subtema.ifBlank { "Revisa este concepto en tus apuntes." },
+                            options      = p.opciones.sortedBy { it.letra }.map { it.texto },
+                            correctIndex = correctIndex,
+                            difficulty   = p.nivelDificultad.coerceIn(1, 3),
+                        )
+                    }
+
+                    call.respond(ApiResponse(ok = true, data = dtos))
                 }
 
                 // ── Banco de preguntas ────────────────────────────────────

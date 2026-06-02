@@ -10,6 +10,9 @@ import kotlinx.serialization.json.Json
 // Cuando ngrok genere una URL nueva, cambia solo esta constante.
 const val BASE_URL = "https://stable-jailbreak-squire.ngrok-free.dev"
 
+// Header requerido por ngrok para evitar la página de advertencia del browser.
+const val NGROK_HEADER = "ngrok-skip-browser-warning"
+
 fun createHttpClient(): HttpClient = HttpClient {
     install(ContentNegotiation) {
         json(Json {

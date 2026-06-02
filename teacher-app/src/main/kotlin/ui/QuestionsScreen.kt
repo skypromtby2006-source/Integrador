@@ -147,7 +147,7 @@ fun QuestionsScreen(docenteId: String) {
                 if (search.isNotBlank() || filterCont != null) "Prueba con otros filtros"
                 else "Agrega la primera pregunta con el botón de arriba")
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(visible, key = { it.preguntaId }) { q ->
                     QuestionCard(
                         pregunta   = q,

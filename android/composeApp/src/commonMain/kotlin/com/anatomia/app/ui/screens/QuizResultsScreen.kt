@@ -27,9 +27,69 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.anatomia.app.agent.AgentRepository
+import com.anatomia.app.agent.DecisionEngine
+import com.anatomia.app.agent.Desire
+import com.anatomia.app.agent.Question
+import com.anatomia.app.agent.StudentProgress
 import com.anatomia.app.navigation.Screen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.anatomia.app.ui.theme.*
 import kotlin.math.roundToInt
+
+private fun buildAgentInsight(
+    currentScore    : Int,
+    total           : Int,
+    currentQuestions: List<Question>,
+    currentAnswers  : Map<Int, Int?>,
+    historicalScore : Float,
+    incorrectTopics : List<String>,
+    desire          : Desire,
+    organName       : String,
+): String {
+    val failedInThisQuiz = currentAnswers.entries
+        .filter { (idx, chosen) -> chosen != null && chosen != currentQuestions[idx].correctIndex }
+        .mapNotNull { (idx, _) -> currentQuestions.getOrNull(idx)?.topic }
+        .distinct()
+
+    val pct     = if (total > 0) currentScore * 100 / total else 0
+    val histPct = (historicalScore * 100).toInt()
+
+    return when (desire) {
+        is Desire.Motivate -> {
+            if (failedInThisQuiz.isEmpty()) {
+                "Dominio sólido de $organName — $pct% en este quiz y $histPct% histórico. " +
+                "Estás listo para un desafío de nivel avanzado."
+            } else {
+                "Gran avance en $organName. Fallaste en: ${failedInThisQuiz.joinToString(", ")}. " +
+                "Son detalles menores — el agente los incluirá en el próximo nivel."
+            }
+        }
+        is Desire.Teach -> {
+            if (incorrectTopics.isEmpty() && failedInThisQuiz.isEmpty()) {
+                "Vas bien en $organName ($pct% en este quiz). " +
+                "Continúa con el siguiente quiz para consolidar el tema."
+            } else {
+                val topics = (incorrectTopics + failedInThisQuiz).distinct().take(3)
+                "En $organName tu score histórico es $histPct%. " +
+                "El agente detectó dificultad en: ${topics.joinToString(", ")}. " +
+                "El próximo quiz se enfocará ahí."
+            }
+        }
+        is Desire.Reinforce -> {
+            val topics = (incorrectTopics + failedInThisQuiz).distinct().take(3)
+            if (topics.isEmpty()) {
+                "Score histórico de $histPct% en $organName. " +
+                "El agente preparará preguntas de refuerzo para afianzar las bases."
+            } else {
+                "Score histórico de $histPct% en $organName. " +
+                "Temas a reforzar: ${topics.joinToString(", ")}. " +
+                "El plan de estudio ya está ajustado para estos puntos."
+            }
+        }
+    }
+}
 
 private enum class QuestionResult { OK, BAD, SKIP }
 
@@ -81,6 +141,53 @@ fun QuizResultsScreen(
         )
     }
 
+    val repository = remember { AgentRepository() }
+    val organId    = state.questions.firstOrNull()?.organId ?: "heart"
+    val historicalProgress by produceState(
+        initialValue = StudentProgress(organId = organId),
+        key1         = organId,
+    ) {
+        value = withContext(Dispatchers.IO) {
+            repository.getProgress(organId)
+        }
+    }
+    val historicalScore    = if (historicalProgress.totalAnswered > 0)
+        historicalProgress.totalCorrect.toFloat() / historicalProgress.totalAnswered
+    else 0f
+
+    val organName = when (organId) {
+        "heart"   -> "Corazón"
+        "lungs"   -> "Pulmones"
+        "kidneys" -> "Riñones"
+        else      -> organId.replaceFirstChar { it.uppercase() }
+    }
+
+    val desire = remember(historicalScore, historicalProgress.totalAnswered) {
+        DecisionEngine.decideNextDesire(
+            score          = historicalScore,
+            attemptCount   = historicalProgress.totalAnswered,
+            organId        = organId,
+            totalQuestions = 8,
+            answeredCount  = historicalProgress.totalAnswered,
+        )
+    }
+
+    // incorrectTopics ahora vienen directo de StudentProgress (nombres reales de temas)
+    val incorrectTopics = remember(historicalProgress) {
+        historicalProgress.incorrectTopics
+    }
+
+    val agentInsight = buildAgentInsight(
+        currentScore     = state.score,
+        total            = state.total,
+        currentQuestions = state.questions,
+        currentAnswers   = state.answers,
+        historicalScore  = historicalScore,
+        incorrectTopics  = incorrectTopics,
+        desire           = desire,
+        organName        = organName,
+    )
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar         = { ResultsTopBar(navController) },
@@ -91,7 +198,8 @@ fun QuizResultsScreen(
                     navController.popBackStack()
                 },
                 onContinue = {
-                    navController.navigate(Screen.Agent.route) {
+                    val organIdFromQuiz = state.questions.firstOrNull()?.organId ?: "default"
+                    navController.navigate(Screen.Agent.createRoute(organIdFromQuiz)) {
                         popUpTo(Screen.Quiz.route) { inclusive = true }
                     }
                 },
@@ -105,7 +213,7 @@ fun QuizResultsScreen(
         ) {
             item { ScoreHeroCard(score = state.score, total = state.total, pct = state.pct, xp = xpGanada) }
             item { StatsRow(correctas = state.score, incorrectas = incorrectas, saltadas = saltadas) }
-            item { AgentInsightCard(score = state.score, total = state.total) }
+            item { AgentInsightCard(insight = agentInsight) }
             item {
                 Row(
                     modifier              = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -246,14 +354,7 @@ private fun StatCard(num: String, label: String, icon: androidx.compose.ui.graph
 }
 
 @Composable
-private fun AgentInsightCard(score: Int, total: Int) {
-    val pct     = if (total > 0) score * 100 / total else 0
-    val insight = when {
-        pct >= 85 -> "Excelente dominio del tema. Puedes avanzar al siguiente órgano."
-        pct >= 70 -> "Buen avance. Repasa los temas donde fallaste para consolidar."
-        pct >= 50 -> "Vas por buen camino. Te sugiero repasar los errores antes de continuar."
-        else      -> "Necesitas más práctica en este tema. El agente te preparará un plan."
-    }
+private fun AgentInsightCard(insight: String) {
     Surface(
         modifier       = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape          = RoundedCornerShape(16.dp),

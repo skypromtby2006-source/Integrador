@@ -121,10 +121,12 @@ object EstudianteRepository {
             counter++
         }
 
+        val ciCompleta = if (req.ciComplemento.isBlank()) req.ciNumero
+                        else "${req.ciNumero}-${req.ciComplemento}"
         val hash = DigestUtils.sha256Hex(req.password)
 
         UsuarioTable.insert {
-            it[usuarioId]          = req.ci
+            it[usuarioId]          = ciCompleta
             it[nombre]             = req.nombre
             it[apellido]           = req.apellido
             it[UsuarioTable.email] = email
@@ -133,10 +135,13 @@ object EstudianteRepository {
             if (req.fechaNacimiento.isNotBlank()) {
                 it[fechaNacimiento] = java.time.LocalDate.parse(req.fechaNacimiento)
             }
+            if (req.correoPersonal.isNotBlank()) {
+                it[correoPersonal] = req.correoPersonal
+            }
         }
 
         EstudianteTable.insert {
-            it[usuarioId]                = req.ci
+            it[usuarioId]                = ciCompleta
             it[EstudianteTable.claseId]  = claseUuid
             it[EstudianteTable.grado]    = grado
             it[turno]                    = clase[ClaseTable.turno]
@@ -144,7 +149,7 @@ object EstudianteRepository {
 
         (UsuarioTable innerJoin EstudianteTable)
             .leftJoin(ClaseTable, { EstudianteTable.claseId }, { ClaseTable.claseId })
-            .select { UsuarioTable.usuarioId eq req.ci }
+            .select { UsuarioTable.usuarioId eq ciCompleta }
             .single()
             .toEstudiante()
     }
@@ -305,6 +310,36 @@ object PreguntaRepository {
                 { ContenidoBiologicoTable.contenidoId })
             .select { BancoPreguntaTable.contenidoId eq uuid }
             .map { it.toPregunta() }
+    }
+
+    // Resuelve organId Android ("heart", "lungs", "kidneys") → UUID del contenido
+    fun getByOrganId(organId: String): List<Pregunta> {
+        val keyword = when (organId.lowercase()) {
+            "heart"   -> "coraz"
+            "lungs"   -> "pulm"
+            "kidneys" -> "ri"
+            else      -> organId.lowercase()
+        }
+        // Buscar UUIDs de contenidos cuyo titulo contiene el keyword
+        val uuids = transaction {
+            ContenidoBiologicoTable
+                .select { ContenidoBiologicoTable.activo eq true }
+                .filter {
+                    it[ContenidoBiologicoTable.titulo]
+                        .lowercase()
+                        .contains(keyword)
+                }
+                .map { it[ContenidoBiologicoTable.contenidoId] }
+        }
+        if (uuids.isEmpty()) return emptyList()
+        return transaction {
+            BancoPreguntaTable
+                .leftJoin(ContenidoBiologicoTable,
+                    { BancoPreguntaTable.contenidoId },
+                    { ContenidoBiologicoTable.contenidoId })
+                .select { BancoPreguntaTable.contenidoId inList uuids }
+                .map { it.toPregunta() }
+        }
     }
 
     fun create(req: CreatePreguntaRequest): Pregunta = transaction {

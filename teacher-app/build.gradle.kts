@@ -44,6 +44,12 @@ dependencies {
 
     // ── Exportación PDF ───────────────────────────────────
     implementation("com.itextpdf:itext7-core:7.2.5")
+
+    // ── Email SMTP ────────────────────────────────────────
+    implementation("com.sun.mail:jakarta.mail:2.0.1")
+
+    // ── Importación Excel ─────────────────────────────────
+    implementation("org.apache.poi:poi-ooxml:5.2.5")
 }
 
 compose.desktop {

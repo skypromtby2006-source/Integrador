@@ -13,7 +13,8 @@ object UsuarioTable : Table("usuario") {
     val email        = varchar("email", 120)
     val passwordHash = text("password_hash")
     val rol          = varchar("rol", 20)
-    val avatarUrl    = text("avatar_url").nullable()
+    val avatarUrl       = text("avatar_url").nullable()
+    val correoPersonal  = varchar("correo_personal", 200).nullable()
     val estado          = varchar("estado", 20).default("activo")
     val fechaNacimiento = date("fecha_nacimiento").nullable()
     val createdAt       = datetime("created_at")
@@ -147,5 +148,62 @@ object DatabaseConfig {
         Database.connect(url = URL, driver = "org.postgresql.Driver",
             user = USER, password = PASSWORD)
         println("[DB] Conectado a PostgreSQL — esquema Didactai v2")
+        seedContenidoBiologico()
+    }
+
+    private fun seedContenidoBiologico() {
+        transaction {
+            val count = ContenidoBiologicoTable.selectAll().count()
+            if (count > 0L) {
+                println("[SEED] Contenido biológico ya existe ($count registros) — omitiendo seed")
+                return@transaction
+            }
+
+            val docenteId = "12395472"
+            val now = java.time.LocalDateTime.now()
+
+            val organs = listOf(
+                Triple(
+                    "Corazón humano",
+                    "Anatomía y fisiología del corazón: cámaras, válvulas y ciclo cardíaco.",
+                    "Circulatorio"
+                ),
+                Triple(
+                    "Pulmones",
+                    "Anatomía del sistema respiratorio: bronquios, alvéolos e intercambio gaseoso.",
+                    "Respiratorio"
+                ),
+                Triple(
+                    "Riñones",
+                    "Anatomía del sistema urinario: nefronas, filtración y producción de orina.",
+                    "Urinario"
+                ),
+            )
+
+            organs.forEach { (titulo, descripcion, categoria) ->
+                val newId = java.util.UUID.randomUUID()
+
+                ContenidoTable.insert {
+                    it[contenidoId] = newId
+                    it[tipo]        = "biologico"
+                    it[createdAt]   = now
+                }
+
+                ContenidoBiologicoTable.insert {
+                    it[contenidoId]                      = newId
+                    it[ContenidoBiologicoTable.titulo]       = titulo
+                    it[ContenidoBiologicoTable.descripcion]  = descripcion
+                    it[ContenidoBiologicoTable.categoria]    = categoria
+                    it[nivelDificultad]                  = 1
+                    it[activo]                           = true
+                    it[creadoPor]                        = docenteId
+                    it[ContenidoBiologicoTable.createdAt]    = now
+                }
+
+                println("[SEED] Contenido insertado: $titulo")
+            }
+
+            println("[SEED] 3 contenidos biológicos insertados correctamente")
+        }
     }
 }

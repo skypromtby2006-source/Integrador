@@ -30,6 +30,7 @@ class ProgressService(private val client: HttpClient) {
         return try {
             val response: HttpResponse = client.post("$BASE_URL/progreso/sesion") {
                 contentType(ContentType.Application.Json)
+                header(NGROK_HEADER, "true")
                 setBody(SubmitProgressDto(
                     studentId = studentId,
                     organId   = organId,

@@ -10,13 +10,17 @@ actual object ProgressStore {
 
     actual fun init(context: Any?) = Unit
 
-    actual fun loadAll(): Map<String, Map<String, Boolean>> = try {
-        Json.decodeFromString(file.readText())
+    actual fun loadAll(): Map<String, Map<String, AnswerRecord>> = try {
+        val text = file.readText()
+        if (text.isBlank()) emptyMap()
+        else Json.decodeFromString(text)
     } catch (_: Exception) {
+        try { file.delete() } catch (_: Exception) {}
         emptyMap()
     }
 
-    actual fun save(data: Map<String, Map<String, Boolean>>) {
+    actual fun save(data: Map<String, Map<String, AnswerRecord>>) {
         file.writeText(Json.encodeToString(data))
     }
+
 }

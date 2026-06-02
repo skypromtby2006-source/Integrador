@@ -45,12 +45,14 @@ data class Estudiante(
 
 @Serializable
 data class CreateEstudianteRequest(
-    val ci:              String,
+    val ciNumero:        String,
+    val ciComplemento:   String = "",
     val nombre:          String,
     val apellido:        String,
     val password:        String,
     val claseId:         String,
-    val fechaNacimiento: String = ""
+    val fechaNacimiento: String = "",
+    val correoPersonal:  String = "",
 )
 
 @Serializable
@@ -245,6 +247,19 @@ data class IntentoResumen(
     val puntajeTotal:     Double,
     val iniciadoEn:       String,
     val finalizadoEn:     String = ""
+)
+
+// ── DTO para app Android ──────────────────────────────────────────────────────
+@Serializable
+data class QuestionAndroidDto(
+    val id          : Int,
+    val topic       : String,
+    val organId     : String,
+    val body        : String,
+    val explanation : String,
+    val options     : List<String>,
+    val correctIndex: Int,
+    val difficulty  : Int,
 )
 
 // ── API wrapper ───────────────────────────────────────────────────────────────

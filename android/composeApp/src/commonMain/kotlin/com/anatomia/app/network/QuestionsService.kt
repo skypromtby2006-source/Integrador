@@ -33,8 +33,9 @@ class QuestionsService(private val client: HttpClient) {
     suspend fun fetchByOrgan(organId: String): Result<List<Question>> {
         return try {
             val response: QuestionsApiResponse = client
-                .get("$BASE_URL/questions/by-organ/$organId")
-                .body()
+                .get("$BASE_URL/questions/by-organ/$organId") {
+                    header(NGROK_HEADER, "true")
+                }.body()
 
             if (response.ok && response.data != null) {
                 Result.success(response.data.map { it.toQuestion() })
@@ -49,8 +50,9 @@ class QuestionsService(private val client: HttpClient) {
     suspend fun fetchAll(): Result<List<Question>> {
         return try {
             val response: QuestionsApiResponse = client
-                .get("$BASE_URL/questions")
-                .body()
+                .get("$BASE_URL/questions") {
+                    header(NGROK_HEADER, "true")
+                }.body()
 
             if (response.ok && response.data != null) {
                 Result.success(response.data.map { it.toQuestion() })
