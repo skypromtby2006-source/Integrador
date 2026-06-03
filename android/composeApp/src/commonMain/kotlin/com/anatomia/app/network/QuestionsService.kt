@@ -64,6 +64,21 @@ class QuestionsService(private val client: HttpClient) {
         }
     }
 
+    suspend fun countByOrgan(organId: String): Result<Int> {
+        return try {
+            val response: QuestionsApiResponse = client
+                .get("$BASE_URL/questions/by-organ/$organId") {
+                    header(NGROK_HEADER, "true")
+                }.body()
+            if (response.ok)
+                Result.success(response.data?.size ?: 0)
+            else
+                Result.failure(Exception(response.error ?: "Error del servidor"))
+        } catch (e: Exception) {
+            Result.failure(Exception("Sin conexión: ${e.message}"))
+        }
+    }
+
     private fun QuestionDto.toQuestion() = Question(
         id           = id.toString(),
         organId      = organId,

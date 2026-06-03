@@ -32,6 +32,8 @@ object QuestionRepository {
     fun getAll(): List<Question> =
         queries.getAllQuestions().executeAsList().map { it.toQuestion() }
 
+    fun countByOrgan(organId: String): Int = getByOrgan(organId).size
+
     fun clear() = queries.clearQuestions()
 
     private fun Questions.toQuestion() = Question(

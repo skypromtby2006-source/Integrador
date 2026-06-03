@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -28,42 +27,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.anatomia.app.data.PlanRepository
-import com.anatomia.app.db.SessionRepository
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import com.anatomia.app.data.model.AppNotification
 import com.anatomia.app.data.model.DailyPlan
+import com.anatomia.app.data.model.NotificationType
 import com.anatomia.app.data.model.PlanTask
 import com.anatomia.app.navigation.Screen
 import com.anatomia.app.ui.theme.*
 
-data class AppNotification(
-    val id: Int,
-    val icon: ImageVector,
-    val title: String,
-    val body: String,
-    val time: String,
-    val isUnread: Boolean
-)
-
-private val sampleNotifications = listOf(
-    AppNotification(1, Icons.Rounded.AutoAwesome,
-        "Agente", "Tienes una nueva sugerencia de repaso", "hace 5 min", true),
-    AppNotification(2, Icons.Rounded.EmojiEvents,
-        "Logro", "Completaste 3 días consecutivos 🔥", "hace 1 h", true),
-    AppNotification(3, Icons.Rounded.Quiz,
-        "Recordatorio", "Quiz de cámaras del corazón pendiente", "ayer", false)
-)
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
-    val context = LocalContext.current
-    val plan = remember { PlanRepository.loadFromContext(context) }
-    val firstName = remember {
-        SessionRepository.load()?.name?.split(" ")?.firstOrNull() ?: "estudiante"
+    val viewModel: HomeViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow
+        .collectAsStateWithLifecycle()
+    LaunchedEffect(lifecycleState) {
+        if (lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED) {
+            viewModel.load()
+        }
     }
+
+    val plan = uiState.plan ?: return
+    val firstName = uiState.userName.ifEmpty { "estudiante" }
 
     var completedIds by rememberSaveable { mutableStateOf(emptySet<String>()) }
     val tasks = plan.tasks.map { it.copy(completed = it.id in completedIds) }
@@ -88,7 +82,9 @@ fun HomeScreen(navController: NavHostController) {
                     firstName = firstName,
                     showNotifications = showNotifications,
                     onNotificationClick = { showNotifications = true },
-                    onDismissNotifications = { showNotifications = false }
+                    onDismissNotifications = { showNotifications = false },
+                    notifications = uiState.notifications,
+                    unreadCount = uiState.unreadCount,
                 )
             }
             item { HeroCard(navController, plan) }
@@ -106,7 +102,14 @@ fun HomeScreen(navController: NavHostController) {
                     }
                 )
             }
-            item { AgentSuggestionCard(navController) }
+            item {
+                AgentSuggestionCard(
+                    navController = navController,
+                    task          = uiState.suggestionTask,
+                    label         = uiState.suggestionLabel,
+                    organId       = uiState.currentOrganId,
+                )
+            }
         }
     }
 
@@ -143,6 +146,8 @@ private fun GreetingBar(
     showNotifications: Boolean,
     onNotificationClick: () -> Unit,
     onDismissNotifications: () -> Unit,
+    notifications: List<AppNotification>,
+    unreadCount: Int,
 ) {
     val successColors = LocalSuccessColors.current
     val density = LocalDensity.current
@@ -221,10 +226,12 @@ private fun GreetingBar(
         Box {
             BadgedBox(
                 badge = {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(9.dp),
-                    )
+                    if (unreadCount > 0) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(9.dp),
+                        )
+                    }
                 }
             ) {
                 IconButton(onClick = onNotificationClick) {
@@ -240,8 +247,8 @@ private fun GreetingBar(
                     properties = PopupProperties(focusable = true)
                 ) {
                     NotificationPanel(
-                        initialNotifications = sampleNotifications,
-                        onDismiss = onDismissNotifications
+                        notifications = notifications,
+                        onDismiss     = onDismissNotifications
                     )
                 }
             }
@@ -270,10 +277,10 @@ private fun GreetingBar(
 
 @Composable
 private fun NotificationPanel(
-    initialNotifications: List<AppNotification>,
+    notifications: List<AppNotification>,
     onDismiss: () -> Unit,
 ) {
-    var items by remember { mutableStateOf(initialNotifications) }
+    var items by remember { mutableStateOf(notifications) }
 
     ElevatedCard(
         modifier = Modifier.width(280.dp),
@@ -289,44 +296,69 @@ private fun NotificationPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text("Notificaciones", style = MaterialTheme.typography.titleMedium)
-                TextButton(onClick = { items = items.map { it.copy(isUnread = false) } }) {
+                TextButton(onClick = { items = items.map { it.copy(isRead = true) } }) {
                     Text("Marcar todo")
                 }
             }
             HorizontalDivider()
-            items.forEachIndexed { index, notif ->
-                if (index > 0) HorizontalDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (notif.isUnread)
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                            else
-                                MaterialTheme.colorScheme.surface
+            if (items.isEmpty()) {
+                Text(
+                    "Sin notificaciones nuevas",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            } else {
+                items.forEachIndexed { index, notif ->
+                    if (index > 0) HorizontalDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (!notif.isRead)
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Icon(
+                            notifIcon(notif.type),
+                            contentDescription = null,
+                            tint = if (!notif.isRead) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp).padding(top = 2.dp),
                         )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Icon(
-                        notif.icon,
-                        contentDescription = null,
-                        tint = if (notif.isUnread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp).padding(top = 2.dp),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(notif.title, style = MaterialTheme.typography.labelLarge)
-                        Text(notif.body, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            notif.time,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(notif.title, style = MaterialTheme.typography.labelLarge)
+                            Text(notif.body, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                relativeTime(notif.timestamp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+private fun notifIcon(type: NotificationType): ImageVector = when (type) {
+    NotificationType.NEW_QUESTIONS    -> Icons.Rounded.Quiz
+    NotificationType.AGENT_SUGGESTION -> Icons.Rounded.AutoAwesome
+    NotificationType.ACHIEVEMENT      -> Icons.Rounded.EmojiEvents
+}
+
+private fun relativeTime(timestamp: Long): String {
+    val diff = System.currentTimeMillis() - timestamp
+    return when {
+        diff < 60_000L    -> "ahora"
+        diff < 3_600_000L -> "hace ${diff / 60_000} min"
+        diff < 86_400_000L -> "hace ${diff / 3_600_000} h"
+        else               -> "ayer"
     }
 }
 
@@ -516,7 +548,17 @@ private fun TagChip(type: String) {
 }
 
 @Composable
-private fun AgentSuggestionCard(navController: NavHostController) {
+private fun AgentSuggestionCard(
+    navController: NavHostController,
+    task         : PlanTask?,
+    label        : String = "SUGERENCIA · AGENTE",
+    organId      : String = "heart",
+) {
+    val destination = when (task?.type) {
+        "video_3d" -> Screen.BodyModel.route
+        "repaso"   -> Screen.Quiz.createRoute(organId)
+        else       -> Screen.Agent.createRoute(organId)
+    }
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
@@ -539,22 +581,31 @@ private fun AgentSuggestionCard(navController: NavHostController) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "SUGERENCIA · AGENTE",
+                    label.ifEmpty { "SUGERENCIA · AGENTE" },
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
                 )
                 Text(
-                    "¿saltamos al reto creativo? va bien con lo que aprendiste hoy",
+                    if (task != null) buildSuggestionText(task)
+                    else "El agente está analizando tu progreso...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
-            TextButton(onClick = { navController.navigate(Screen.Agent.createRoute("default")) }) {
+            TextButton(onClick = { navController.navigate(destination) }) {
                 Text("vamos", color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Icon(Icons.Rounded.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(16.dp))
             }
         }
     }
+}
+
+private fun buildSuggestionText(task: PlanTask): String = when (task.type) {
+    "video_3d"      -> "¿exploramos el modelo 3D? es el mejor punto de partida"
+    "repaso"        -> "¿hacemos el quiz ahora? el agente ajustó las preguntas a tu nivel"
+    "lectura"       -> "hay una lectura corta que refuerza lo que aprendiste hoy"
+    "reto_creativo" -> "¿saltamos al reto creativo? va bien con lo que aprendiste hoy"
+    else            -> "el agente tiene el siguiente paso listo para ti"
 }
 
 @Composable
