@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.anatomia.app.navigation.Screen
+import com.anatomia.app.network.ServerConfig
 import com.anatomia.app.ui.theme.*
 import kotlin.math.roundToInt
 
@@ -58,6 +60,8 @@ fun SettingsScreen(
     val displayName = student?.name ?: "Estudiante"
     val displayEmail = student?.email ?: ""
     val displayInitial = displayName.firstOrNull()?.uppercase() ?: "E"
+    var serverUrl by rememberSaveable { mutableStateOf(ServerConfig.getBaseUrl()) }
+    var urlSaved by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -245,6 +249,121 @@ fun SettingsScreen(
                     Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = OnSurfaceVariant)
                 }
             }
+
+            // Servidor
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    "SERVIDOR",
+                    fontSize = 11.sp,
+                    letterSpacing = 1.2.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp)
+                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Rounded.CloudSync,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "URL del servidor",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (serverUrl != ServerConfig.defaultUrl) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        "personalizada",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value         = serverUrl,
+                            onValueChange = {
+                                serverUrl = it
+                                urlSaved  = false
+                            },
+                            label         = { Text("URL ngrok", fontSize = 12.sp) },
+                            placeholder   = { Text(ServerConfig.defaultUrl, fontSize = 12.sp) },
+                            singleLine    = true,
+                            modifier      = Modifier.fillMaxWidth(),
+                            textStyle     = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    ServerConfig.resetToDefault()
+                                    serverUrl = ServerConfig.defaultUrl
+                                    urlSaved  = false
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Restablecer", fontSize = 13.sp)
+                            }
+                            Button(
+                                onClick = {
+                                    ServerConfig.setBaseUrl(serverUrl)
+                                    urlSaved = true
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled  = serverUrl.isNotBlank() && !urlSaved
+                            ) {
+                                Icon(
+                                    if (urlSaved) Icons.Rounded.CheckCircle
+                                    else Icons.Rounded.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    if (urlSaved) "Guardada" else "Guardar",
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+
+                        if (urlSaved) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "✓ Próxima petición usará la nueva URL",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
 
             // Cuenta
             SettingsSection(title = "CUENTA") {

@@ -12,6 +12,7 @@ import com.anatomia.app.agent.MoodStore
 import com.anatomia.app.agent.ProgressStore
 import com.anatomia.app.db.DatabaseDriverFactory
 import com.anatomia.app.db.DatabaseProvider
+import com.anatomia.app.network.ServerConfig
 import com.anatomia.app.network.SessionStore
 
 class MainActivity : ComponentActivity() {
@@ -22,6 +23,7 @@ class MainActivity : ComponentActivity() {
         ProgressStore.init(this)
         MoodStore.init(this)
         SessionStore.init(this)
+        ServerConfig.init(this)
 
         // Ocultar status bar y barra de navegación — modo inmersivo
         val controller = WindowInsetsControllerCompat(window, window.decorView)

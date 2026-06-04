@@ -6,12 +6,9 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
-// URL base del servidor Teacher App vía ngrok.
-// Cuando ngrok genere una URL nueva, cambia solo esta constante.
-const val BASE_URL = "https://stable-jailbreak-squire.ngrok-free.dev"
-
-// Header requerido por ngrok para evitar la página de advertencia del browser.
 const val NGROK_HEADER = "ngrok-skip-browser-warning"
+
+val BASE_URL: String get() = ServerConfig.getBaseUrl()
 
 fun createHttpClient(): HttpClient = HttpClient {
     install(ContentNegotiation) {
