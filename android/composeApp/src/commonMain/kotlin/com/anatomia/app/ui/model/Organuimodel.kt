@@ -12,6 +12,15 @@ data class OrganUiModel(
     val systemName: String,
     val description: String,
     val facts: List<OrganFact>,
+    val pois: List<OrganPoi> = emptyList(),
+)
+
+data class OrganPoi(
+    val name       : String,
+    val label      : String,
+    val description: String,
+    val topic      : String,
+    val facts      : List<String> = emptyList(),
 )
 
 /**
@@ -39,9 +48,16 @@ sealed interface BodyModelUiState {
     /** No hay órgano seleccionado, sheet oculto */
     data object Idle : BodyModelUiState
 
-    /** Unity disparó OrganSelected, sheet visible con datos */
+    /** Tap en órgano completo — sheet con datos generales */
     data class OrganFocused(
         val organ: OrganUiModel,
+        val activeSystem: AnatomySystem,
+    ) : BodyModelUiState
+
+    /** Tap en POI específico — sheet con datos de la parte */
+    data class PoiFocused(
+        val organ       : OrganUiModel,
+        val poi         : OrganPoi,
         val activeSystem: AnatomySystem,
     ) : BodyModelUiState
 }
@@ -49,6 +65,7 @@ sealed interface BodyModelUiState {
 enum class AnatomySystem(val displayName: String) {
     CARDIOVASCULAR("Cardiovascular"),
     RESPIRATORY("Respiratorio"),
+    URINARY("Urinario"),
     DIGESTIVE("Digestivo"),
     NERVOUS("Nervioso"),
 }

@@ -97,17 +97,17 @@ class AgentDashboardViewModel : ViewModel() {
                     else      -> organId
                 }
                 val progress  = repository.getProgress(effectiveOrganId)
-                val score     = if (progress.totalAnswered > 0)
-                    progress.totalCorrect.toFloat() / progress.totalAnswered else 0f
+                val score     = if (progress.quizAnswered > 0)
+                    progress.quizCorrect.toFloat() / progress.quizAnswered else 0f
                 val organName   = organIdToName(effectiveOrganId)
                 val beliefs     = buildBeliefs(progress, score, organName)
                 val goal        = buildGoal(organName, progress, score)
                 val desire      = DecisionEngine.decideNextDesire(
                     score          = score,
-                    attemptCount   = progress.totalAnswered,
+                    attemptCount   = progress.quizAnswered,
                     organId        = effectiveOrganId,
                     totalQuestions = 8,
-                    answeredCount  = progress.totalAnswered,
+                    answeredCount  = progress.quizAnswered,
                 )
                 val steps       = buildPlanSteps(desire, progress, effectiveOrganId)
                 val weekSummary = buildWeekSummary(score, organName)
@@ -264,8 +264,19 @@ class AgentDashboardViewModel : ViewModel() {
             )
         }
 
-        if (progress.totalAnswered >= 3) {
-            val ratio = progress.totalCorrect.toFloat() / progress.totalAnswered
+        if (progress.exploredTopics.isNotEmpty()) {
+            val topicsText = progress.exploredTopics.take(3).joinToString(", ")
+            beliefs.add(
+                BeliefUiItem(
+                    title  = "Exploró en 3D: $topicsText",
+                    detail = "La exploración visual refuerza la memoria",
+                    level  = BeliefLevel.STRONG,
+                )
+            )
+        }
+
+        if (progress.quizAnswered >= 3) {
+            val ratio = progress.quizCorrect.toFloat() / progress.quizAnswered
             if (ratio >= 0.80f) {
                 beliefs.add(
                     BeliefUiItem(
@@ -274,7 +285,7 @@ class AgentDashboardViewModel : ViewModel() {
                         level  = BeliefLevel.STRONG,
                     )
                 )
-            } else if (ratio < 0.40f) {
+            } else if (ratio < 0.40f && progress.quizAnswered >= 3) {
                 beliefs.add(
                     BeliefUiItem(
                         title  = "El agente detectó dificultad frecuente",

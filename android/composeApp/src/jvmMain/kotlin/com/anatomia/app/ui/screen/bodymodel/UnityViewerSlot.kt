@@ -10,7 +10,10 @@ import androidx.compose.ui.unit.sp
 import com.anatomia.app.ui.theme.AppColors
 
 @Composable
-actual fun UnityViewerSlot(onOrganSelected: (organId: String) -> Unit) {
+actual fun UnityViewerSlot(
+    onOrganSelected: (organId: String) -> Unit,
+    onPoiSelected  : (poiName: String, organId: String) -> Unit,
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,

@@ -47,19 +47,19 @@ class HomeViewModel : ViewModel() {
                 val organId   = detectActiveOrgan()
                 val organName = organIdToName(organId)
                 val progress  = repository.getProgress(organId)
-                val score     = if (progress.totalAnswered > 0)
-                    progress.totalCorrect.toFloat() / progress.totalAnswered
+                val score     = if (progress.quizAnswered > 0)
+                    progress.quizCorrect.toFloat() / progress.quizAnswered
                 else 0f
 
                 val desire = DecisionEngine.decideNextDesire(
                     score          = score,
-                    attemptCount   = progress.totalAnswered,
+                    attemptCount   = progress.quizAnswered,
                     organId        = organId,
                     totalQuestions = 8,
-                    answeredCount  = progress.totalAnswered,
+                    answeredCount  = progress.quizAnswered,
                 )
 
-                val tasks = buildPlanTasksFromDesire(desire, organId, organName, progress.totalAnswered)
+                val tasks = buildPlanTasksFromDesire(desire, organId, organName, progress)
 
                 val suggestionTask = tasks.firstOrNull { !it.completed }
                 val suggestionLabel = when (desire) {
@@ -136,19 +136,26 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun buildPlanTasksFromDesire(
-        desire       : Desire,
-        organId      : String,
-        organName    : String,
-        answeredCount: Int,
+        desire   : Desire,
+        organId  : String,
+        organName: String,
+        progress : com.anatomia.app.agent.StudentProgress,
     ): List<PlanTask> = when (desire) {
 
         is Desire.Teach -> listOf(
+            PlanTask(
+                id          = "task_read_$organId",
+                title       = "Leer sobre $organName",
+                type        = "lectura",
+                durationMin = 10,
+                completed   = false,
+            ),
             PlanTask(
                 id          = "task_explore_$organId",
                 title       = "Explorar $organName en 3D",
                 type        = "video_3d",
                 durationMin = 5,
-                completed   = answeredCount > 0,
+                completed   = progress.exploredTopics.isNotEmpty(),
             ),
             PlanTask(
                 id          = "task_quiz_intro_$organId",

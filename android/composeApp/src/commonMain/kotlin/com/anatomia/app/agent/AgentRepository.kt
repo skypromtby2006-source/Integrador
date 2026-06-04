@@ -12,6 +12,19 @@ data class StudentProgress(
         .map { it.topic }
         .distinct()
         .take(5)
+
+    // Solo respuestas reales de quiz — excluye exploraciones 3D (explore_*)
+    val quizAnswered: Int get() = answeredQuestions.keys
+        .count { !it.startsWith("explore_") }
+    val quizCorrect: Int get() = answeredQuestions.entries
+        .filter { !it.key.startsWith("explore_") }
+        .count { it.value.wasCorrect }
+
+    // Temas explorados visualmente en el visor 3D
+    val exploredTopics: List<String> get() = answeredQuestions.entries
+        .filter { it.key.startsWith("explore_") }
+        .map { it.value.topic }
+        .distinct()
 }
 
 class AgentRepository {
