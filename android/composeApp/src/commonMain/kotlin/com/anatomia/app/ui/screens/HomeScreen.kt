@@ -3,6 +3,7 @@ package com.anatomia.app.ui.screens
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -93,6 +94,8 @@ fun HomeScreen(navController: NavHostController) {
                     tasks = tasks,
                     completedCount = completedCount,
                     totalMin = totalMin,
+                    navController = navController,
+                    currentOrganId = uiState.currentOrganId,
                     onTaskChecked = { _, task, isChecked ->
                         if (isChecked) {
                             completedIds = completedIds + task.id
@@ -452,6 +455,8 @@ private fun PlanSection(
     tasks: List<PlanTask>,
     completedCount: Int,
     totalMin: Int,
+    navController: NavHostController,
+    currentOrganId: String,
     onTaskChecked: (index: Int, task: PlanTask, checked: Boolean) -> Unit,
 ) {
     Row(
@@ -481,7 +486,13 @@ private fun PlanSection(
                 )
                 PlanTaskRow(
                     task = task,
-                    onChecked = { isChecked -> onTaskChecked(index, task, isChecked) }
+                    onChecked = { isChecked -> onTaskChecked(index, task, isChecked) },
+                    onNavigate = when (task.type) {
+                        "lectura"  -> { { navController.navigate(Screen.Reading.createRoute(currentOrganId)) } }
+                        "video_3d" -> { { navController.navigate(Screen.BodyModel.route) } }
+                        "repaso"   -> { { navController.navigate(Screen.Quiz.createRoute(currentOrganId)) } }
+                        else -> null
+                    }
                 )
             }
         }
@@ -490,10 +501,17 @@ private fun PlanSection(
 }
 
 @Composable
-private fun PlanTaskRow(task: PlanTask, onChecked: (Boolean) -> Unit) {
+private fun PlanTaskRow(
+    task: PlanTask,
+    onChecked: (Boolean) -> Unit,
+    onNavigate: (() -> Unit)? = null,
+) {
     val successColors = LocalSuccessColors.current
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onNavigate != null) { onNavigate?.invoke() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -557,6 +575,7 @@ private fun AgentSuggestionCard(
     val destination = when (task?.type) {
         "video_3d" -> Screen.BodyModel.route
         "repaso"   -> Screen.Quiz.createRoute(organId)
+        "lectura"  -> Screen.Reading.createRoute(organId)
         else       -> Screen.Agent.createRoute(organId)
     }
     Surface(

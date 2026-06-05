@@ -97,6 +97,19 @@ fun App(modifier: Modifier = Modifier) {
             composable(Screen.EditProfile.route) {
                 EditProfileScreen(navController)
             }
+            composable(
+                route     = Screen.Reading.route,
+                arguments = listOf(
+                    navArgument(Screen.Reading.ARG_ORGAN_ID) {
+                        type         = NavType.StringType
+                        defaultValue = "heart"
+                    }
+                )
+            ) { backStackEntry ->
+                val organId = backStackEntry.arguments
+                    ?.getString(Screen.Reading.ARG_ORGAN_ID) ?: "heart"
+                ReadingScreen(navController = navController, organId = organId)
+            }
         }
         } // Surface
     }

@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import models.DocenteSession
+import models.LoginResult
 import server.HttpServer
 
 enum class Screen(val label: String, val icon: ImageVector) {
@@ -33,26 +34,58 @@ enum class Screen(val label: String, val icon: ImageVector) {
     Questions("Preguntas",      Icons.Rounded.Quiz),
     Evaluations("Evaluaciones", Icons.Rounded.Assignment),
     Progress("Progreso",        Icons.Rounded.BarChart),
+    Content("Contenido",        Icons.Rounded.MenuBook),
+}
+
+// ── Estado global de la app ───────────────────────────────────────────────────
+sealed class AppState {
+    object Login : AppState()
+    data class Need2FA(val usuarioId: String, val nombre: String, val rol: String) : AppState()
+    data class DocenteHome(val session: DocenteSession) : AppState()
+    data class SuperAdminDashboard(val session: DocenteSession) : AppState()
 }
 
 @Composable
 fun App() {
     DidactaiTheme {
-        var session by remember { mutableStateOf<DocenteSession?>(null) }
+        var appState by remember { mutableStateOf<AppState>(AppState.Login) }
 
-        if (session == null) {
-            LoginDocenteScreen(onLogin = { session = it })
-        } else {
-            MainShell(session = session!!, onLogout = { session = null })
+        when (val state = appState) {
+            is AppState.Login -> LoginScreen(
+                onNeed2FA  = { id, nombre, rol -> appState = AppState.Need2FA(id, nombre, rol) },
+                onSuccess  = { session ->
+                    appState = if (session.rol == "super_admin")
+                        AppState.SuperAdminDashboard(session)
+                    else
+                        AppState.DocenteHome(session)
+                }
+            )
+            is AppState.Need2FA -> PantallaCodigo2FA(
+                usuarioId   = state.usuarioId,
+                onSuccess   = { session ->
+                    appState = if (session.rol == "super_admin")
+                        AppState.SuperAdminDashboard(session)
+                    else
+                        AppState.DocenteHome(session)
+                },
+                onVolver    = { appState = AppState.Login }
+            )
+            is AppState.DocenteHome ->
+                MainShell(session = state.session, onLogout = { appState = AppState.Login })
+            is AppState.SuperAdminDashboard ->
+                PantallaDashboard(session = state.session, onLogout = { appState = AppState.Login })
         }
     }
 }
 
-// ── Login del docente ─────────────────────────────────────────────────────────
+// ── Login con email ───────────────────────────────────────────────────────────
 @Composable
-fun LoginDocenteScreen(onLogin: (DocenteSession) -> Unit) {
+fun LoginScreen(
+    onNeed2FA: (String, String, String) -> Unit,
+    onSuccess: (DocenteSession) -> Unit
+) {
     val scope   = rememberCoroutineScope()
-    var ci      by remember { mutableStateOf("") }
+    var email   by remember { mutableStateOf("") }
     var pwd     by remember { mutableStateOf("") }
     var error   by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -86,8 +119,8 @@ fun LoginDocenteScreen(onLogin: (DocenteSession) -> Unit) {
                     color = DColors.OnSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp))
 
-                DTextField(value = ci, onValueChange = { ci = it },
-                    label = "Cédula de identidad",
+                DTextField(value = email, onValueChange = { email = it },
+                    label = "Correo electrónico",
                     modifier = Modifier.fillMaxWidth())
 
                 DTextField(value = pwd, onValueChange = { pwd = it },
@@ -103,15 +136,29 @@ fun LoginDocenteScreen(onLogin: (DocenteSession) -> Unit) {
                         scope.launch {
                             loading = true
                             error   = null
-                            val result = withContext(Dispatchers.IO) {
-                                AuthRepository.loginDocente(ci.trim(), pwd)
+                            val result: LoginResult? = withContext(Dispatchers.IO) {
+                                AuthRepository.loginEmail(email.trim(), pwd)
                             }
-                            if (result != null) onLogin(result)
-                            else error = "CI o contraseña incorrectos"
+                            when {
+                                result == null -> error = "Correo o contraseña incorrectos"
+                                result.requiere2FA -> onNeed2FA(result.usuarioId, result.primerNombre, result.rol)
+                                else -> {
+                                    val session = withContext(Dispatchers.IO) {
+                                        AuthRepository.obtenerPorId(result.usuarioId)
+                                    } ?: DocenteSession(
+                                        usuarioId       = result.usuarioId,
+                                        primerNombre    = result.primerNombre,
+                                        apellidoPaterno = "",
+                                        email           = result.email,
+                                        rol             = result.rol
+                                    )
+                                    onSuccess(session)
+                                }
+                            }
                             loading = false
                         }
                     },
-                    enabled  = ci.isNotBlank() && pwd.isNotBlank() && !loading,
+                    enabled  = email.isNotBlank() && pwd.isNotBlank() && !loading,
                     colors   = ButtonDefaults.buttonColors(containerColor = DColors.Primary),
                     shape    = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -143,6 +190,7 @@ fun MainShell(session: DocenteSession, onLogout: () -> Unit) {
                 Screen.Questions    -> QuestionsScreen(docenteId = session.usuarioId)
                 Screen.Evaluations  -> EvaluacionesScreen(docenteId = session.usuarioId)
                 Screen.Progress     -> SessionProgressScreen(docenteId = session.usuarioId)
+                Screen.Content      -> ContenidoScreen(docenteId = session.usuarioId)
             }
         }
     }
@@ -184,7 +232,7 @@ private fun Sidebar(
                 Icon(Icons.Rounded.Person, null, tint = DColors.Primary,
                     modifier = Modifier.size(18.dp))
                 Column {
-                    Text("${session.nombre} ${session.apellido}",
+                    Text(session.nombreCompleto,
                         fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         color = DColors.OnSurface)
                     Text("CI: ${session.usuarioId}", fontSize = 10.sp,
@@ -230,7 +278,7 @@ private fun SidebarItem(screen: Screen, selected: Boolean, onClick: () -> Unit) 
 }
 
 @Composable
-private fun ServerStatusBadge() {
+internal fun ServerStatusBadge() {
     Surface(shape = RoundedCornerShape(10.dp),
         color = DColors.SuccessContainer.copy(alpha = 0.25f),
         modifier = Modifier.fillMaxWidth()) {

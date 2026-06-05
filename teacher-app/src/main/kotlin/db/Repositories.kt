@@ -10,6 +10,53 @@ import java.util.UUID
 // ── AuthRepository ────────────────────────────────────────────────────────────
 object AuthRepository {
 
+    fun loginEmail(email: String, password: String): LoginResult? {
+        val hash = DigestUtils.sha256Hex(password)
+        return transaction {
+            exec("""
+                SELECT u.usuario_id, u.primer_nombre, u.email, r.nombre AS rol,
+                       COALESCE(t.habilitado, FALSE) AS tiene_2fa
+                FROM usuario u
+                JOIN rol r ON r.rol_id = u.rol_id
+                LEFT JOIN usuario_2fa t ON t.usuario_id = u.usuario_id
+                WHERE u.email = '$email'
+                  AND u.password_hash = '$hash'
+                  AND r.nombre IN ('docente', 'super_admin')
+            """.trimIndent()) { rs ->
+                if (rs.next()) listOf(LoginResult(
+                    usuarioId    = rs.getString("usuario_id"),
+                    primerNombre = rs.getString("primer_nombre"),
+                    email        = rs.getString("email"),
+                    rol          = rs.getString("rol"),
+                    requiere2FA  = rs.getBoolean("tiene_2fa")
+                )) else emptyList()
+            }
+        }?.firstOrNull()
+    }
+
+    fun obtenerPorId(usuarioId: String): DocenteSession? {
+        return transaction {
+            exec("""
+                SELECT u.usuario_id, u.primer_nombre, u.segundo_nombre,
+                       u.apellido_paterno, u.apellido_materno, u.email,
+                       r.nombre AS rol
+                FROM usuario u
+                JOIN rol r ON r.rol_id = u.rol_id
+                WHERE u.usuario_id = '$usuarioId'
+            """.trimIndent()) { rs ->
+                if (rs.next()) listOf(DocenteSession(
+                    usuarioId       = rs.getString("usuario_id"),
+                    primerNombre    = rs.getString("primer_nombre"),
+                    segundoNombre   = rs.getString("segundo_nombre"),
+                    apellidoPaterno = rs.getString("apellido_paterno"),
+                    apellidoMaterno = rs.getString("apellido_materno"),
+                    email           = rs.getString("email"),
+                    rol             = rs.getString("rol")
+                )) else emptyList()
+            }
+        }?.firstOrNull()
+    }
+
     fun loginDocente(ci: String, password: String): DocenteSession? = transaction {
         val hash = DigestUtils.sha256Hex(password)
         (UsuarioTable innerJoin DocenteTable)
@@ -21,10 +68,12 @@ object AuthRepository {
             .singleOrNull()
             ?.let {
                 DocenteSession(
-                    usuarioId = it[UsuarioTable.usuarioId],
-                    nombre    = it[UsuarioTable.nombre],
-                    apellido  = it[UsuarioTable.apellido],
-                    email     = it[UsuarioTable.email]
+                    usuarioId       = it[UsuarioTable.usuarioId],
+                    primerNombre    = it[UsuarioTable.primerNombre],
+                    segundoNombre   = it[UsuarioTable.segundoNombre],
+                    apellidoPaterno = it[UsuarioTable.apellidoPaterno],
+                    apellidoMaterno = it[UsuarioTable.apellidoMaterno],
+                    email           = it[UsuarioTable.email]
                 )
             }
     }
@@ -41,10 +90,14 @@ object AuthRepository {
             }
             .singleOrNull()
             ?.let {
+                val nombre   = it[UsuarioTable.primerNombre] +
+                    (it[UsuarioTable.segundoNombre]?.let { s -> " $s" } ?: "")
+                val apellido = it[UsuarioTable.apellidoPaterno] +
+                    (it[UsuarioTable.apellidoMaterno]?.let { a -> " $a" } ?: "")
                 LoginEstudianteResponse(
                     usuarioId   = it[UsuarioTable.usuarioId],
-                    nombre      = it[UsuarioTable.nombre],
-                    apellido    = it[UsuarioTable.apellido],
+                    nombre      = nombre,
+                    apellido    = apellido,
                     email       = it[UsuarioTable.email],
                     claseId     = it[EstudianteTable.claseId]?.toString() ?: "",
                     claseNombre = try { it[ClaseTable.nombre] } catch (_: Exception) { "" },
@@ -52,6 +105,47 @@ object AuthRepository {
                     nivelXp     = it[EstudianteTable.nivelXp]
                 )
             }
+    }
+}
+
+// ── DocenteRepository ─────────────────────────────────────────────────────────
+object DocenteRepository {
+
+    fun create(req: CreateDocenteRequest): DocenteInfo = transaction {
+        val hash  = DigestUtils.sha256Hex(req.password)
+        val rolId = exec("SELECT rol_id FROM rol WHERE nombre = 'docente'") { rs ->
+            if (rs.next()) listOf(rs.getInt("rol_id")) else emptyList()
+        }?.firstOrNull() ?: 2
+
+        UsuarioTable.insert {
+            it[usuarioId]       = req.ci
+            it[primerNombre]    = req.primerNombre.trim()
+            it[segundoNombre]   = req.segundoNombre?.trim()?.takeIf { s -> s.isNotBlank() }
+            it[apellidoPaterno] = req.apellidoPaterno.trim()
+            it[apellidoMaterno] = req.apellidoMaterno?.trim()?.takeIf { s -> s.isNotBlank() }
+            it[email]           = req.email.trim().lowercase()
+            it[passwordHash]    = hash
+            it[rol]             = "docente"
+            it[UsuarioTable.rolId] = rolId
+        }
+
+        DocenteTable.insert {
+            it[usuarioId]           = req.ci
+            it[especialidad]        = req.especialidad.takeIf { s -> s.isNotBlank() }
+            it[tituloAcademico]     = req.tituloAcademico.takeIf { s -> s.isNotBlank() }
+            it[puedeCrearContenido] = true
+        }
+
+        DocenteInfo(
+            usuarioId       = req.ci,
+            primerNombre    = req.primerNombre.trim(),
+            segundoNombre   = req.segundoNombre?.trim()?.takeIf { s -> s.isNotBlank() },
+            apellidoPaterno = req.apellidoPaterno.trim(),
+            apellidoMaterno = req.apellidoMaterno?.trim()?.takeIf { s -> s.isNotBlank() },
+            email           = req.email.trim().lowercase(),
+            especialidad    = req.especialidad,
+            tituloAcademico = req.tituloAcademico
+        )
     }
 }
 
@@ -89,7 +183,7 @@ object EstudianteRepository {
         (UsuarioTable innerJoin EstudianteTable)
             .leftJoin(ClaseTable, { EstudianteTable.claseId }, { ClaseTable.claseId })
             .select { UsuarioTable.rol eq "estudiante" }
-            .orderBy(UsuarioTable.apellido, SortOrder.ASC)
+            .orderBy(UsuarioTable.apellidoPaterno, SortOrder.ASC)
             .map { it.toEstudiante() }
     }
 
@@ -98,7 +192,7 @@ object EstudianteRepository {
         (UsuarioTable innerJoin EstudianteTable)
             .leftJoin(ClaseTable, { EstudianteTable.claseId }, { ClaseTable.claseId })
             .select { EstudianteTable.claseId eq uuid }
-            .orderBy(UsuarioTable.apellido, SortOrder.ASC)
+            .orderBy(UsuarioTable.apellidoPaterno, SortOrder.ASC)
             .map { it.toEstudiante() }
     }
 
@@ -127,8 +221,8 @@ object EstudianteRepository {
 
         UsuarioTable.insert {
             it[usuarioId]          = ciCompleta
-            it[nombre]             = req.nombre
-            it[apellido]           = req.apellido
+            it[primerNombre]       = req.nombre
+            it[apellidoPaterno]    = req.apellido
             it[UsuarioTable.email] = email
             it[passwordHash]       = hash
             it[rol]                = "estudiante"
@@ -167,8 +261,8 @@ object EstudianteRepository {
         val grado = clase[ClaseTable.grado]
 
         UsuarioTable.update({ UsuarioTable.usuarioId eq ci }) { row ->
-            row[UsuarioTable.nombre]   = nombre
-            row[UsuarioTable.apellido] = apellido
+            row[primerNombre]    = nombre
+            row[apellidoPaterno] = apellido
             if (newPassword != null) {
                 row[passwordHash] = DigestUtils.sha256Hex(newPassword)
             }
@@ -219,8 +313,8 @@ object EstudianteRepository {
 
         EstudianteProgreso(
             usuarioId      = ci,
-            nombre         = usuario[UsuarioTable.nombre],
-            apellido       = usuario[UsuarioTable.apellido],
+            nombre         = usuario[UsuarioTable.primerNombre],
+            apellido       = usuario[UsuarioTable.apellidoPaterno],
             email          = usuario[UsuarioTable.email],
             nivelXp        = estudiante[EstudianteTable.nivelXp],
             totalIntentos  = intentos.size,
@@ -238,8 +332,8 @@ object EstudianteRepository {
 
     private fun ResultRow.toEstudiante() = Estudiante(
         usuarioId       = this[UsuarioTable.usuarioId],
-        nombre          = this[UsuarioTable.nombre],
-        apellido        = this[UsuarioTable.apellido],
+        nombre          = this[UsuarioTable.primerNombre],
+        apellido        = this[UsuarioTable.apellidoPaterno],
         email           = this[UsuarioTable.email],
         claseId         = this[EstudianteTable.claseId]?.toString() ?: "",
         claseNombre     = try { this[ClaseTable.nombre] } catch (_: Exception) { "" },
@@ -263,9 +357,44 @@ object ContenidoRepository {
                     titulo          = it[ContenidoBiologicoTable.titulo],
                     descripcion     = it[ContenidoBiologicoTable.descripcion] ?: "",
                     categoria       = it[ContenidoBiologicoTable.categoria] ?: "",
-                    nivelDificultad = it[ContenidoBiologicoTable.nivelDificultad].toInt()
+                    nivelDificultad = it[ContenidoBiologicoTable.nivelDificultad].toInt(),
+                    textoLectura    = it[ContenidoBiologicoTable.textoLectura],
                 )
             }
+    }
+
+    fun updateTextoLectura(contenidoId: String, texto: String): Boolean = transaction {
+        val uuid = try { java.util.UUID.fromString(contenidoId) }
+                   catch (_: Exception) { return@transaction false }
+        val rows = ContenidoBiologicoTable.update(
+            { ContenidoBiologicoTable.contenidoId eq uuid }
+        ) {
+            it[textoLectura] = texto
+        }
+        rows > 0
+    }
+
+    fun updateInfo(
+        contenidoId    : String,
+        titulo         : String,
+        descripcion    : String,
+        categoria      : String,
+        nivelDificultad: Int,
+        textoLectura   : String?,
+    ): Boolean = transaction {
+        val uuid = try { java.util.UUID.fromString(contenidoId) }
+                   catch (_: Exception) { return@transaction false }
+        val rows = ContenidoBiologicoTable.update(
+            { ContenidoBiologicoTable.contenidoId eq uuid }
+        ) {
+            it[ContenidoBiologicoTable.titulo]          = titulo
+            it[ContenidoBiologicoTable.descripcion]     = descripcion
+            it[ContenidoBiologicoTable.categoria]       = categoria
+            it[ContenidoBiologicoTable.nivelDificultad] = nivelDificultad.toShort()
+            if (textoLectura != null)
+                it[ContenidoBiologicoTable.textoLectura] = textoLectura
+        }
+        rows > 0
     }
 
     fun create(titulo: String, descripcion: String, categoria: String,
@@ -535,7 +664,7 @@ object EvaluacionRepository {
                     tituloEvaluacion = try { row[EvaluacionTable.titulo] } catch (_: Exception) { "" },
                     usuarioId        = row[IntentoEvaluacionTable.usuarioId],
                     nombreEstudiante = try {
-                        "${row[UsuarioTable.nombre]} ${row[UsuarioTable.apellido]}"
+                        "${row[UsuarioTable.primerNombre]} ${row[UsuarioTable.apellidoPaterno]}"
                     } catch (_: Exception) { "" },
                     correctas    = row[IntentoEvaluacionTable.correctas].toInt(),
                     incorrectas  = row[IntentoEvaluacionTable.incorrectas].toInt(),
@@ -596,7 +725,7 @@ object SesionRepository {
         val estudiantes = EstudianteTable
             .innerJoin(UsuarioTable, { EstudianteTable.usuarioId }, { UsuarioTable.usuarioId })
             .select { EstudianteTable.claseId eq uuid }
-            .map { Triple(it[UsuarioTable.usuarioId], it[UsuarioTable.nombre], it[UsuarioTable.apellido]) }
+            .map { Triple(it[UsuarioTable.usuarioId], it[UsuarioTable.primerNombre], it[UsuarioTable.apellidoPaterno]) }
 
         estudiantes.map { (ci, nombre, apellido) ->
             val usuario = UsuarioTable.select { UsuarioTable.usuarioId eq ci }.singleOrNull()

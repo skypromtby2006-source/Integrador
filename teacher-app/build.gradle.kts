@@ -50,6 +50,11 @@ dependencies {
 
     // ── Importación Excel ─────────────────────────────────
     implementation("org.apache.poi:poi-ooxml:5.2.5")
+
+    // ── TOTP 2FA ──────────────────────────────────────────
+    implementation("dev.turingcomplete:kotlin-onetimepassword:2.4.0")
+    // ── QR Code PNG ───────────────────────────────────────
+    implementation("io.github.g0dkar:qrcode-kotlin:4.1.1")
 }
 
 compose.desktop {

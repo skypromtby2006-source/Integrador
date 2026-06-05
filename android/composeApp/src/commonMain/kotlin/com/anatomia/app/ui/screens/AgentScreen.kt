@@ -2,6 +2,7 @@ package com.anatomia.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -93,7 +94,19 @@ fun DidactaiAgentScreen(
             )
             BeliefsSection(beliefs = state.beliefs)
             GoalSection(goal = state.goal)
-            PlanSection(steps = state.planSteps)
+            PlanSection(
+                steps = state.planSteps,
+                navController = navController,
+                organId = state.organId,
+                onStepClick = { step ->
+                    if (step.title.contains("3D", ignoreCase = true) ||
+                        step.title.contains("Explorar", ignoreCase = true)) {
+                        navController.navigate(
+                            com.anatomia.app.navigation.Screen.Reading.createRoute(state.organId)
+                        )
+                    }
+                }
+            )
             ReflectionSection(
                 selectedMood  = state.selectedMood,
                 onMoodSelected = viewModel::selectMood,
@@ -371,7 +384,12 @@ private fun GoalPill(icon: androidx.compose.ui.graphics.vector.ImageVector, labe
 }
 
 @Composable
-private fun PlanSection(steps: List<PlanStepUiItem>) {
+private fun PlanSection(
+    steps: List<PlanStepUiItem>,
+    navController: androidx.navigation.NavHostController,
+    organId: String,
+    onStepClick: ((PlanStepUiItem) -> Unit)? = null,
+) {
     SectionHeader("Mi plan para ti", "próximos pasos", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer) {
         Icon(Icons.Rounded.Route, contentDescription = null, modifier = Modifier.size(18.dp))
     }
@@ -384,17 +402,32 @@ private fun PlanSection(steps: List<PlanStepUiItem>) {
         Column {
             steps.forEachIndexed { index, step ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                PlanStepRow(step)
+                val isNavigable = step.title.contains("3D", ignoreCase = true) ||
+                    step.title.contains("Explorar", ignoreCase = true) ||
+                    step.status == StepStatus.CURRENT
+                PlanStepRow(
+                    step = step,
+                    onNavigate = if (isNavigable) { { onStepClick?.invoke(step) } } else null,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PlanStepRow(step: PlanStepUiItem) {
+private fun PlanStepRow(
+    step: PlanStepUiItem,
+    onNavigate: (() -> Unit)? = null,
+) {
     val successColors = LocalSuccessColors.current
+    val isNavigable = step.title.contains("3D", ignoreCase = true) ||
+        step.title.contains("Explorar", ignoreCase = true) ||
+        step.status == StepStatus.CURRENT
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isNavigable && onNavigate != null) Modifier.clickable { onNavigate() } else Modifier)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

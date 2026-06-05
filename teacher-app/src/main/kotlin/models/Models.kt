@@ -10,12 +10,105 @@ data class LoginDocenteRequest(
 )
 
 @Serializable
-data class DocenteSession(
-    val usuarioId: String,
-    val nombre:    String,
-    val apellido:  String,
-    val email:     String
+data class LoginRequest(
+    val email:    String,
+    val password: String
 )
+
+@Serializable
+data class Verify2FARequest(
+    val usuarioId: String,
+    val codigo:    String
+)
+
+@Serializable
+data class DocenteSession(
+    val usuarioId:       String,
+    val primerNombre:    String,
+    val segundoNombre:   String?  = null,
+    val apellidoPaterno: String,
+    val apellidoMaterno: String?  = null,
+    val email:           String,
+    val rol:             String   = "docente"
+) {
+    val nombreCompleto: String get() =
+        listOfNotNull(primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno)
+            .joinToString(" ")
+    val nombreCorto: String get() = primerNombre
+}
+
+data class LoginResult(
+    val usuarioId:    String,
+    val primerNombre: String,
+    val email:        String,
+    val rol:          String,
+    val requiere2FA:  Boolean
+)
+
+// ── Rol ───────────────────────────────────────────────────────────────────────
+data class Rol(
+    val rolId:      Int,
+    val nombre:     String,
+    val descripcion: String?
+)
+
+data class UsuarioConRol(
+    val usuarioId:    String,
+    val nombre:       String,
+    val apellido:     String,
+    val email:        String,
+    val passwordHash: String,
+    val rol:          String,
+    val rolId:        Int
+)
+
+// ── Docente ───────────────────────────────────────────────────────────────────
+@Serializable
+data class CreateDocenteRequest(
+    val ci:              String,
+    val primerNombre:    String,
+    val segundoNombre:   String?  = null,
+    val apellidoPaterno: String,
+    val apellidoMaterno: String?  = null,
+    val email:           String,
+    val password:        String,
+    val especialidad:    String   = "",
+    val tituloAcademico: String   = ""
+)
+
+@Serializable
+data class DocenteInfo(
+    val usuarioId:       String,
+    val primerNombre:    String,
+    val segundoNombre:   String?  = null,
+    val apellidoPaterno: String,
+    val apellidoMaterno: String?  = null,
+    val email:           String,
+    val especialidad:    String   = "",
+    val tituloAcademico: String   = ""
+) {
+    val nombreCompleto: String get() =
+        listOfNotNull(primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno)
+            .joinToString(" ")
+}
+
+@Serializable
+data class DocenteListItem(
+    val usuarioId:       String,
+    val primerNombre:    String,
+    val segundoNombre:   String?  = null,
+    val apellidoPaterno: String,
+    val apellidoMaterno: String?  = null,
+    val email:           String,
+    val estado:          String   = "activo",
+    val especialidad:    String   = "",
+    val tituloAcademico: String   = "",
+    val tiene2FA:        Boolean  = false
+) {
+    val nombreCompleto: String get() =
+        listOfNotNull(primerNombre, segundoNombre, apellidoPaterno, apellidoMaterno)
+            .joinToString(" ")
+}
 
 // ── Clase ─────────────────────────────────────────────────────────────────────
 @Serializable
@@ -93,9 +186,10 @@ data class LoginEstudianteResponse(
 data class ContenidoBiologico(
     val contenidoId:     String,
     val titulo:          String,
-    val descripcion:     String = "",
-    val categoria:       String = "",
-    val nivelDificultad: Int    = 1
+    val descripcion:     String  = "",
+    val categoria:       String  = "",
+    val nivelDificultad: Int     = 1,
+    val textoLectura:    String? = null,
 )
 
 @Serializable

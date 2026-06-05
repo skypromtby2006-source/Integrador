@@ -7,12 +7,17 @@ import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.datetime
 
 object UsuarioTable : Table("usuario") {
-    val usuarioId    = varchar("usuario_id", 15)
-    val nombre       = varchar("nombre", 60)
-    val apellido     = varchar("apellido", 60)
-    val email        = varchar("email", 120)
-    val passwordHash = text("password_hash")
-    val rol          = varchar("rol", 20)
+    val usuarioId       = varchar("usuario_id", 15)
+    // ── Nombre atomizado (4 campos) ──────────────────────────────────────────
+    val primerNombre    = varchar("primer_nombre", 60)
+    val segundoNombre   = varchar("segundo_nombre", 60).nullable()
+    val apellidoPaterno = varchar("apellido_paterno", 60)
+    val apellidoMaterno = varchar("apellido_materno", 60).nullable()
+    // ── Resto de campos ───────────────────────────────────────────────────────
+    val email           = varchar("email", 120)
+    val passwordHash    = text("password_hash")
+    val rol             = varchar("rol", 20)
+    val rolId           = integer("rol_id").nullable()
     val avatarUrl       = text("avatar_url").nullable()
     val correoPersonal  = varchar("correo_personal", 200).nullable()
     val estado          = varchar("estado", 20).default("activo")
@@ -65,6 +70,7 @@ object ContenidoBiologicoTable : Table("contenido_biologico") {
     val categoria       = varchar("categoria", 60).nullable()
     val nivelDificultad = short("nivel_dificultad").default(1)
     val gradoObjetivo   = varchar("grado_objetivo", 20).nullable()
+    val textoLectura    = text("texto_lectura").nullable()
     val activo          = bool("activo").default(true)
     val creadoPor       = varchar("creado_por", 15).references(UsuarioTable.usuarioId)
     val createdAt       = datetime("created_at")

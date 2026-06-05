@@ -1,5 +1,6 @@
 package server
 
+import QrMailService
 import db.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -10,6 +11,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.pipeline.*
 import models.*
 import kotlinx.serialization.json.Json
 
@@ -22,6 +24,19 @@ object HttpServer {
             install(ContentNegotiation) {
                 json(Json { prettyPrint = true; isLenient = true; ignoreUnknownKeys = true })
             }
+
+            // ── Interceptor de log en memoria ─────────────────────────────
+            intercept(ApplicationCallPipeline.Monitoring) {
+                val metodo = call.request.httpMethod.value
+                val ruta   = call.request.uri
+                proceed()
+                val status = call.response.status()?.value ?: 0
+                val hora   = java.time.LocalTime.now().format(
+                    java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+                )
+                RequestLog.agregar(LogEntry(hora, metodo, ruta, status))
+            }
+
             routing {
 
                 // ── Health ────────────────────────────────────────────────
@@ -68,7 +83,7 @@ object HttpServer {
                     call.respondFile(file)
                 }
 
-                // ── Auth docente ──────────────────────────────────────────
+                // ── Auth docente (legacy CI — mantener para compatibilidad) ──
                 post("/auth/docente") {
                     val req = call.receive<LoginDocenteRequest>()
                     val session = AuthRepository.loginDocente(req.ci, req.password)
@@ -78,6 +93,117 @@ object HttpServer {
                         call.respond(HttpStatusCode.Unauthorized,
                             ApiResponse<DocenteSession>(ok = false, error = "CI o contraseña incorrectos"))
                     }
+                }
+
+                // ── Auth email + 2FA ──────────────────────────────────────
+                // POST /auth/login — paso 1: email + password
+                post("/auth/login") {
+                    val body = call.receive<LoginRequest>()
+                    val resultado = AuthRepository.loginEmail(body.email, body.password)
+
+                    if (resultado == null) {
+                        call.respond(HttpStatusCode.Unauthorized,
+                            mapOf("status" to "error", "mensaje" to "Credenciales inválidas"))
+                        return@post
+                    }
+
+                    if (resultado.requiere2FA) {
+                        call.respond(mapOf(
+                            "status"     to "need_2fa",
+                            "usuario_id" to resultado.usuarioId
+                        ))
+                    } else {
+                        call.respond(mapOf(
+                            "status"     to "ok",
+                            "rol"        to resultado.rol,
+                            "nombre"     to resultado.primerNombre,
+                            "usuario_id" to resultado.usuarioId
+                        ))
+                    }
+                }
+
+                // POST /auth/verify-2fa — paso 2: código TOTP
+                post("/auth/verify-2fa") {
+                    val body = call.receive<Verify2FARequest>()
+                    val valido = TotpRepository.verificarCodigo(body.usuarioId, body.codigo)
+
+                    if (!valido) {
+                        call.respond(HttpStatusCode.Unauthorized,
+                            mapOf("status" to "error", "mensaje" to "Código incorrecto o expirado"))
+                        return@post
+                    }
+
+                    val usuario = AuthRepository.obtenerPorId(body.usuarioId)
+                    call.respond(mapOf(
+                        "status"     to "ok",
+                        "rol"        to (usuario?.rol ?: ""),
+                        "nombre"     to (usuario?.primerNombre ?: ""),
+                        "usuario_id" to body.usuarioId
+                    ))
+                }
+
+                // ── Listar docentes ───────────────────────────────────────
+                get("/docentes") {
+                    val docentes = org.jetbrains.exposed.sql.transactions.transaction {
+                        exec("""
+                            SELECT u.usuario_id, u.primer_nombre, u.segundo_nombre,
+                                   u.apellido_paterno, u.apellido_materno, u.email,
+                                   u.estado,
+                                   COALESCE(d.especialidad, '')     AS especialidad,
+                                   COALESCE(d.titulo_academico, '') AS titulo_academico,
+                                   COALESCE(t.habilitado, FALSE)    AS tiene_2fa
+                            FROM usuario u
+                            JOIN rol r ON r.rol_id = u.rol_id
+                            LEFT JOIN docente d ON d.usuario_id = u.usuario_id
+                            LEFT JOIN usuario_2fa t ON t.usuario_id = u.usuario_id
+                            WHERE r.nombre = 'docente'
+                            ORDER BY u.apellido_paterno, u.primer_nombre
+                        """.trimIndent()) { rs ->
+                            val lista = mutableListOf<DocenteListItem>()
+                            while (rs.next()) {
+                                lista.add(DocenteListItem(
+                                    usuarioId       = rs.getString("usuario_id"),
+                                    primerNombre    = rs.getString("primer_nombre"),
+                                    segundoNombre   = rs.getString("segundo_nombre"),
+                                    apellidoPaterno = rs.getString("apellido_paterno"),
+                                    apellidoMaterno = rs.getString("apellido_materno"),
+                                    email           = rs.getString("email"),
+                                    estado          = rs.getString("estado"),
+                                    especialidad    = rs.getString("especialidad"),
+                                    tituloAcademico = rs.getString("titulo_academico"),
+                                    tiene2FA        = rs.getBoolean("tiene_2fa")
+                                ))
+                            }
+                            lista.toList()
+                        }
+                    } ?: emptyList<DocenteListItem>()
+                    call.respond(ApiResponse(ok = true, data = docentes))
+                }
+
+                // ── Crear docente (con 2FA automático) ───────────────────
+                post("/docentes") {
+                    val req = call.receive<CreateDocenteRequest>()
+                    if (req.ci.isBlank() || req.primerNombre.isBlank() || req.email.isBlank() || req.password.isBlank()) {
+                        call.respond(HttpStatusCode.BadRequest,
+                            ApiResponse<DocenteInfo>(ok = false, error = "ci, primerNombre, email y password requeridos"))
+                        return@post
+                    }
+                    val docente = DocenteRepository.create(req)
+
+                    val secreto = TotpRepository.generarSecreto()
+                    TotpRepository.guardarSecreto(docente.usuarioId, secreto)
+                    try {
+                        QrMailService.enviarQrPorCorreo(
+                            destinatario  = docente.email,
+                            nombreUsuario = docente.primerNombre,
+                            secreto       = secreto
+                        )
+                        TotpRepository.marcarQrEnviado(docente.usuarioId)
+                    } catch (e: Exception) {
+                        println("[2FA] Error al enviar QR a ${docente.email}: ${e.message}")
+                    }
+
+                    call.respond(HttpStatusCode.Created, ApiResponse(ok = true, data = docente))
                 }
 
                 // ── Auth estudiante (Android) ─────────────────────────────
@@ -177,6 +303,67 @@ object HttpServer {
                 // ── Contenido biológico ───────────────────────────────────
                 route("/contenido") {
                     get { call.respond(ApiResponse(ok = true, data = ContenidoRepository.getAll())) }
+
+                    // GET /contenido/{organId}/lectura — para app Android
+                    get("/{organId}/lectura") {
+                        val organId = call.parameters["organId"]
+                        if (organId.isNullOrBlank()) {
+                            call.respond(HttpStatusCode.BadRequest,
+                                ApiResponse(ok = false, data = "organId requerido"))
+                            return@get
+                        }
+                        val keyword = when (organId.lowercase()) {
+                            "heart"   -> "coraz"
+                            "lungs"   -> "pulm"
+                            "kidneys" -> "ri"
+                            else      -> organId.lowercase()
+                        }
+                        val contenido = ContenidoRepository.getAll()
+                            .firstOrNull { it.titulo.lowercase().contains(keyword) }
+
+                        if (contenido == null) {
+                            call.respond(HttpStatusCode.NotFound,
+                                ApiResponse(ok = false, data = "Contenido no encontrado para $organId"))
+                            return@get
+                        }
+                        call.respond(ApiResponse(ok = true, data = mapOf(
+                            "contenidoId"  to contenido.contenidoId,
+                            "titulo"       to contenido.titulo,
+                            "descripcion"  to contenido.descripcion,
+                            "categoria"    to contenido.categoria,
+                            "textoLectura" to (contenido.textoLectura ?: ""),
+                        )))
+                    }
+
+                    // PUT /contenido/{contenidoId} — para Teacher App
+                    put("/{contenidoId}") {
+                        val contenidoId = call.parameters["contenidoId"]
+                        if (contenidoId.isNullOrBlank()) {
+                            call.respond(HttpStatusCode.BadRequest,
+                                ApiResponse(ok = false, data = "contenidoId requerido"))
+                            return@put
+                        }
+                        @kotlinx.serialization.Serializable
+                        data class UpdateContenidoRequest(
+                            val titulo         : String,
+                            val descripcion    : String  = "",
+                            val categoria      : String  = "",
+                            val nivelDificultad: Int     = 1,
+                            val textoLectura   : String? = null,
+                        )
+                        val req = call.receive<UpdateContenidoRequest>()
+                        val ok  = ContenidoRepository.updateInfo(
+                            contenidoId     = contenidoId,
+                            titulo          = req.titulo,
+                            descripcion     = req.descripcion,
+                            categoria       = req.categoria,
+                            nivelDificultad = req.nivelDificultad,
+                            textoLectura    = req.textoLectura,
+                        )
+                        if (ok) call.respond(ApiResponse(ok = true, data = "Contenido actualizado"))
+                        else    call.respond(HttpStatusCode.NotFound,
+                                    ApiResponse(ok = false, data = "Contenido no encontrado"))
+                    }
                 }
 
                 // ── Endpoint para app Android ─────────────────────────────
@@ -390,6 +577,45 @@ object HttpServer {
                         return@get
                     }
                     call.respond(ApiResponse(ok = true, data = resumen))
+                }
+
+                // ── Admin: log de requests ────────────────────────────────
+                delete("/admin/log") {
+                    RequestLog.limpiar()
+                    call.respond(mapOf("status" to "ok"))
+                }
+
+                // ── Admin: setup TOTP para cuentas existentes (Paso 10) ──
+                get("/admin/setup-totp") {
+                    val adminKey  = call.request.queryParameters["admin_key"]
+                    val usuarioId = call.request.queryParameters["usuario_id"]
+
+                    if (adminKey != "didactai_setup_2026" || usuarioId == null) {
+                        call.respond(HttpStatusCode.Forbidden, "No autorizado")
+                        return@get
+                    }
+
+                    val session = AuthRepository.obtenerPorId(usuarioId)
+                    if (session == null) {
+                        call.respond(HttpStatusCode.NotFound, "Usuario no encontrado")
+                        return@get
+                    }
+
+                    val secreto = TotpRepository.generarSecreto()
+                    TotpRepository.guardarSecreto(usuarioId, secreto)
+
+                    try {
+                        QrMailService.enviarQrPorCorreo(session.email, session.primerNombre, secreto)
+                        TotpRepository.marcarQrEnviado(usuarioId)
+                        call.respond(mapOf(
+                            "status"  to "ok",
+                            "mensaje" to "QR enviado a ${session.email}",
+                            "secreto" to secreto
+                        ))
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.InternalServerError,
+                            mapOf("status" to "error", "mensaje" to (e.message ?: "Error SMTP")))
+                    }
                 }
             }
         }.start(wait = false)

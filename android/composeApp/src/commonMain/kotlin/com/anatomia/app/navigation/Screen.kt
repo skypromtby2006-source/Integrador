@@ -12,6 +12,10 @@ sealed class Screen(val route: String) {
         fun createRoute(organId: String) = "quiz/$organId"
     }
     object QuizResults : Screen("quiz_results")
+    object Reading : Screen("reading/{organId}") {
+        fun createRoute(organId: String) = "reading/$organId"
+        const val ARG_ORGAN_ID = "organId"
+    }
     object Settings    : Screen("settings")
     object History     : Screen("history")
     object EditProfile : Screen("edit_profile")
